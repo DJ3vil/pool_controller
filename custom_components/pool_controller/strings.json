@@ -256,6 +256,9 @@
           "solar_energy_entity_daily": "Daily solar energy allocated to the pool (kWh). Used to compute net cost."
         }
       }
+    },
+    "error": {
+      "invalid_entity": "Please select an external switch — not one created by this integration."
     }
   },
   "options": {
@@ -534,6 +537,9 @@
           "solar_energy_entity_daily": "Daily solar energy allocated to the pool (kWh). Used to compute net cost."
         }
       }
+    },
+    "error": {
+      "invalid_entity": "Please select an external switch — not one created by this integration."
     }
   },
   "entity": {

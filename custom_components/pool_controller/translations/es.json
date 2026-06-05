@@ -264,6 +264,9 @@
                     "solar_energy_entity_daily": "Energía solar diaria asignada al pool (kWh). Se usa para el coste neto."
                 }
             }
+        },
+        "error": {
+            "invalid_entity": "Seleccione un interruptor externo, no uno creado por esta integración."
         }
     },
     "options": {
@@ -550,6 +553,9 @@
                     "solar_energy_entity_daily": "Energía solar diaria asignada al pool (kWh). Se usa para el coste neto."
                 }
             }
+        },
+        "error": {
+            "invalid_entity": "Seleccione un interruptor externo, no uno creado por esta integración."
         }
     },
     "entity": {

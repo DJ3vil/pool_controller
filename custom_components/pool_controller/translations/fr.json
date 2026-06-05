@@ -264,6 +264,9 @@
                     "solar_energy_entity_daily": "Énergie solaire quotidienne attribuée à la piscine (kWh). Utilisée pour le coût net."
                 }
             }
+        },
+        "error": {
+            "invalid_entity": "Veuillez sélectionner un interrupteur externe — pas un créé par cette intégration."
         }
     },
     "options": {
@@ -550,6 +553,9 @@
                     "solar_energy_entity_daily": "Énergie solaire quotidienne attribuée à la piscine (kWh). Utilisée pour le coût net."
                 }
             }
+        },
+        "error": {
+            "invalid_entity": "Veuillez sélectionner un interrupteur externe — pas un créé par cette intégration."
         }
     },
     "entity": {

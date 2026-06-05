@@ -264,6 +264,9 @@
                     "solar_energy_entity_daily": "Tägliche Solarenergie, die dem Pool zugeordnet wird (kWh). Wird für Nettokosten genutzt."
                 }
             }
+        },
+        "error": {
+            "invalid_entity": "Bitte einen externen Schalter wählen — keinen, der von dieser Integration erstellt wurde."
         }
     },
     "options": {
@@ -550,6 +553,9 @@
                     "solar_energy_entity_daily": "Tägliche Solarenergie, die dem Pool zugeordnet wird (kWh). Wird für Nettokosten genutzt."
                 }
             }
+        },
+        "error": {
+            "invalid_entity": "Bitte einen externen Schalter wählen — keinen, der von dieser Integration erstellt wurde."
         }
     },
     "entity": {
