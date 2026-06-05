@@ -123,6 +123,10 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
         self.heat_startup_offset_minutes = DEFAULT_HEAT_STARTUP_OFFSET_MINUTES
         self._last_temp_ts = None
         self._last_temp_value = None
+        # Robust online fit for P_loss ~= k * (T_water - T_outdoor)
+        # to avoid coefficient spikes when delta is small.
+        self._heat_loss_fit_sum_x2 = 0.0
+        self._heat_loss_fit_sum_xy = 0.0
         self._heat_start_ts = None
         self._heat_start_temp = None
         self._heat_start_reached = False
@@ -188,6 +192,7 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             try:
                 if entry.options.get(OPT_KEY_HEAT_LOSS_W_PER_C) is not None:
                     self.heat_loss_w_per_c = float(entry.options.get(OPT_KEY_HEAT_LOSS_W_PER_C))
+                    self.heat_loss_w_per_c = max(0.0, min(80.0, self.heat_loss_w_per_c))
             except Exception:
                 self.heat_loss_w_per_c = DEFAULT_HEAT_LOSS_W_PER_C
             try:
@@ -769,7 +774,8 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
         try:
             if water_temp is not None and outdoor_temp is not None:
                 delta = max(0.0, float(water_temp) - float(outdoor_temp))
-                loss_w = max(0.0, float(self.heat_loss_w_per_c or 0.0) * float(delta))
+                loss_coeff = max(0.0, min(80.0, float(self.heat_loss_w_per_c or 0.0)))
+                loss_w = max(0.0, loss_coeff * float(delta))
         except Exception:
             loss_w = 0.0
         effective = max(1.0, float(power_w) - float(loss_w))
@@ -941,6 +947,13 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             await self._async_update_entry_options(new_opts)
         except Exception:
             _LOGGER.exception("Fehler beim Speichern von pause timer")
+
+        # Pause is a hard lockout: try to switch all physical actuators off immediately
+        # so we do not depend solely on the next coordinator update tick.
+        try:
+            await self._async_force_pause_off()
+        except Exception:
+            _LOGGER.exception("Fehler beim sofortigen Ausschalten der Aktoren für Pause")
 
     async def deactivate_pause(self):
         self.pause_until = None
@@ -1257,7 +1270,48 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
         domain = str(entity_id).split(".", 1)[0]
         service = "turn_on" if turn_on else "turn_off"
         call_domain = domain if self.hass.services.has_service(domain, service) else "homeassistant"
-        await self.hass.services.async_call(call_domain, service, {"entity_id": entity_id})
+        await self.hass.services.async_call(call_domain, service, {"entity_id": entity_id}, blocking=True)
+
+    def _is_pool_controller_entity(self, entity_id: str | None) -> bool:
+        if not entity_id:
+            return False
+        try:
+            ent_reg = er.async_get(self.hass)
+            ent = ent_reg.async_get(str(entity_id)) if ent_reg else None
+            return bool(ent and getattr(ent, "platform", None) == DOMAIN)
+        except Exception:
+            return False
+
+    def _resolve_external_actuator_entity(self, conf: dict, key: str) -> str | None:
+        configured = conf.get(key)
+        if configured and not self._is_pool_controller_entity(configured):
+            return configured
+        fallback = (self.entry.data or {}).get(key)
+        if fallback and not self._is_pool_controller_entity(fallback):
+            return fallback
+        return configured
+
+    async def _async_force_pause_off(self) -> None:
+        conf = {**(self.entry.data or {}), **(self.entry.options or {})}
+        demo = bool(conf.get(CONF_DEMO_MODE, False))
+        if demo:
+            return
+
+        main_id = self._resolve_external_actuator_entity(conf, CONF_MAIN_SWITCH)
+        pump_id = self._resolve_external_actuator_entity(conf, CONF_PUMP_SWITCH) or main_id
+        aux_id = self._resolve_external_actuator_entity(conf, CONF_AUX_HEATING_SWITCH)
+
+        seen: set[str] = set()
+        for eid in (main_id, pump_id, aux_id):
+            if not eid or eid in seen:
+                continue
+            seen.add(eid)
+            if self._is_pool_controller_entity(eid):
+                continue
+            try:
+                await self._async_turn_entity(eid, False)
+            except Exception:
+                _LOGGER.exception("Fehler beim Pause-Hard-Off für %s", eid)
 
     def _thermostat_demand(self, current_temp: float | None, target_temp: float, cold_tolerance: float, hot_tolerance: float, prev_on: bool) -> bool:
         """Simple hysteresis: turn ON below (target-cold), turn OFF at/above (target+hot)."""
@@ -1441,15 +1495,51 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             now = dt_util.now()
             conf = {**self.entry.data, **self.entry.options}
 
+            try:
+                ent_reg = er.async_get(self.hass)
+            except Exception:
+                ent_reg = None
+
+            def _is_own_integration_entity(entity_id: str | None) -> bool:
+                if not entity_id or not ent_reg:
+                    return False
+                try:
+                    ent = ent_reg.async_get(entity_id)
+                    return bool(ent and ent.config_entry_id == getattr(self.entry, "entry_id", None))
+                except Exception:
+                    return False
+
+            def _resolve_actuator_entity(conf_key: str) -> str | None:
+                configured = conf.get(conf_key)
+                if configured and not _is_own_integration_entity(configured):
+                    return configured
+
+                # If options accidentally point to this integration's proxy switch,
+                # prefer the original setup value from entry.data when available.
+                fallback = (self.entry.data or {}).get(conf_key)
+                if fallback and (fallback != configured) and (not _is_own_integration_entity(fallback)):
+                    _LOGGER.warning(
+                        "Ignoring invalid %s=%s (pool_controller entity); using %s from setup data",
+                        conf_key,
+                        configured,
+                        fallback,
+                    )
+                    return fallback
+                return configured
+
             # Ensure aux_allowed is always a boolean (defensive)
             self.aux_allowed = bool(getattr(self, "aux_allowed", getattr(self, "aux_enabled", False)))
             # Keep legacy alias in sync
             self.aux_enabled = self.aux_allowed
 
             # Physical switch entity IDs (may be external entities). Used for state mirroring.
-            main_switch_id = conf.get(CONF_MAIN_SWITCH) or None
-            pump_switch_raw = conf.get(CONF_PUMP_SWITCH) or None
-            aux_switch_id = conf.get(CONF_AUX_HEATING_SWITCH) or None
+            # Use upstream's _resolve_actuator_entity() so config values that
+            # accidentally point to this integration's own proxy switches are
+            # ignored in favour of the original setup value. Layer our
+            # existence-check fallback (below) on top of pump_switch_raw.
+            main_switch_id = _resolve_actuator_entity(CONF_MAIN_SWITCH) or None
+            pump_switch_raw = _resolve_actuator_entity(CONF_PUMP_SWITCH) or None
+            aux_switch_id = _resolve_actuator_entity(CONF_AUX_HEATING_SWITCH) or None
             demo = conf.get(CONF_DEMO_MODE, False)
 
             # Fall back to main switch when pump_switch is unset OR points to a
@@ -2771,12 +2861,30 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                                     dtemp = float(water_temp) - float(self._last_temp_value)
                                     if dtemp < 0:
                                         cooling_rate = abs(dtemp) / dt_min  # °C/min
-                                        delta = max(0.1, float(water_temp) - float(outdoor_temp))
-                                        loss_w = float(vol_l) * 1.16 * float(cooling_rate) * 60.0
-                                        est_w_per_c = max(0.0, loss_w / delta)
-                                        # EMA smoothing
-                                        alpha = 0.2
-                                        self.heat_loss_w_per_c = max(0.0, (1 - alpha) * float(self.heat_loss_w_per_c) + alpha * est_w_per_c)
+                                        delta = max(0.0, float(water_temp) - float(outdoor_temp))
+
+                                        # Guardrails for learning: require plausible cooling samples.
+                                        drop_per_hour = cooling_rate * 60.0
+                                        max_temp_drop_per_hour = 1.5
+                                        if 0.02 <= drop_per_hour <= max_temp_drop_per_hour and delta > 0.0:
+                                            # Convert observed cooling to equivalent heat loss power (W).
+                                            # dT/h = cooling_rate * 60
+                                            loss_w = float(vol_l) * 1.16 * float(cooling_rate) * 60.0
+                                            loss_w = max(0.0, min(6000.0, loss_w))
+
+                                            # Online linear fit with forgetting:
+                                            #   loss_w ~= k * delta
+                                            # This avoids per-sample division by tiny delta values.
+                                            decay = 0.995
+                                            self._heat_loss_fit_sum_x2 = decay * float(self._heat_loss_fit_sum_x2 or 0.0) + (delta * delta)
+                                            self._heat_loss_fit_sum_xy = decay * float(self._heat_loss_fit_sum_xy or 0.0) + (delta * loss_w)
+
+                                            if self._heat_loss_fit_sum_x2 >= 9.0:
+                                                est_w_per_c = float(self._heat_loss_fit_sum_xy) / float(self._heat_loss_fit_sum_x2)
+                                                est_w_per_c = max(0.0, min(80.0, est_w_per_c))
+                                                prev = float(self.heat_loss_w_per_c or DEFAULT_HEAT_LOSS_W_PER_C)
+                                                alpha = 0.12
+                                                self.heat_loss_w_per_c = (1.0 - alpha) * prev + alpha * est_w_per_c
                                 # refresh baseline after a full window
                                 self._last_temp_ts = now
                                 self._last_temp_value = float(water_temp)
@@ -3005,6 +3113,7 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                 and cal_next.get("start")
                 and now < cal_next["start"]
                 and (not event_rain_blocked)
+                and (not in_quiet)
                 and (not self.away_active)
             )
 
@@ -3237,7 +3346,7 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                         or aux_heat_demand
                         or (is_manual_filter and not in_quiet)
                         or (auto_filter_active and not in_quiet)
-                        or (next_start_mins is not None and next_start_mins == 0)
+                        or preheat_active
                         or power_saving_pump_run
                         or pv_run
                     )
@@ -3252,7 +3361,7 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                         or aux_heat_demand
                         or (is_manual_filter and not in_quiet)
                         or (auto_filter_active and not in_quiet)
-                        or (next_start_mins is not None and next_start_mins == 0)
+                        or preheat_active
                         or power_saving_pump_run
                         or pv_run
                     )
