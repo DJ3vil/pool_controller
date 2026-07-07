@@ -3,7 +3,9 @@
 ![Latest Version](https://img.shields.io/github/v/release/lweberru/pool_controller)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-> **Fork notice / Hinweis:** This is a fork of [lweberru/pool_controller](https://github.com/lweberru/pool_controller) with additional fixes around config-flow defaults, pump-switch fallback, and one-shot migration for legacy entity IDs. See the [CHANGELOG](CHANGELOG.md) for details.
+Language: **English** | [Deutsch](README.de.md)
+
+> **Fork notice / Hinweis:** This is a fork of [lweberru/pool_controller](https://github.com/lweberru/pool_controller) with additional features and fixes: config-flow defaults / pump-switch fallback / one-shot migration for legacy entity IDs, and a **battery-first PV gate**. See the German section further down and the [CHANGELOG](CHANGELOG.md) for details.
 
 ## Overview
 
@@ -22,12 +24,16 @@ If your spa/pool is connected to a simple smart switch (on/off only), you lose a
 
 This repository's documentation has been split into chapters for easier navigation:
 
+German translation: [README.de.md](README.de.md)
+
 - [Installation & Setup](docs/installation.md)
 - [Configuration](docs/configuration.md)
 - [Sensors, Entities & Controls](docs/entities.md)
 - [Costs & Electricity Prices](docs/costs.md)
 - [Services (Automations & Advanced)](docs/services.md)
 - [Water Quality Monitoring & Disinfection](docs/water-quality.md)
+- [Dynamic Target Temperature](docs/dynamic-target.md)
+- [Home Assistant API Helper Script](docs/ha-api-read.md)
 - [Advanced Features](docs/advanced.md)
 - [Common Automations](docs/automations.md)
 - [Troubleshooting](docs/troubleshooting.md)

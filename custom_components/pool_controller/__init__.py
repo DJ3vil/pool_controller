@@ -26,6 +26,8 @@ from .const import (
     OPT_KEY_FROST_CREDIT_EXPIRES_AT,
     OPT_KEY_CREDIT_STREAK_SOURCE,
     OPT_KEY_CREDIT_STREAK_MINUTES,
+    OPT_KEY_CHEMISTRY_HISTORY,
+    OPT_KEY_CHEM_BLOCK_UNTIL,
     OPT_KEY_DERIVED_GRID_DAILY_LAST_VALUE,
     OPT_KEY_DERIVED_GRID_DAILY_LAST_DATE,
     OPT_KEY_DERIVED_GRID_MONTH_TOTAL,
@@ -49,6 +51,10 @@ from .const import (
     OPT_KEY_AWAY_ACTIVE,
     OPT_KEY_AWAY_PREV_TARGET,
     OPT_KEY_POWER_SAVING_ACTIVE,
+    OPT_KEY_MANUAL_MODE_ACTIVE,
+    OPT_KEY_BOOST_ACTIVE,
+    OPT_KEY_BOOST_UNTIL,
+    OPT_KEY_AUX_ALLOWED,
     OPT_KEY_DERIVED_COST_DAILY_LAST_VALUE,
     OPT_KEY_DERIVED_COST_DAILY_LAST_DATE,
     OPT_KEY_DERIVED_COST_MONTH_TOTAL,
@@ -76,6 +82,28 @@ from .const import (
     CONF_MAX_MERGE_RUN_MINUTES,
     CONF_MIN_CREDIT_MINUTES,
     CONF_CREDIT_SOURCES,
+    CONF_CHEM_TARGET_TDS_PPM,
+    CONF_CHEM_TARGET_ALKALINITY_PPM,
+    CONF_CHEM_COOLDOWN_MINUTES,
+    CONF_CHEM_HISTORY_LOOKBACK_MINUTES,
+    CONF_CHEM_MIN_STABLE_SAMPLES,
+    CONF_ENABLE_DYNAMIC_TARGET,
+    CONF_DYNAMIC_TARGET_WEATHER_ENTITY,
+    CONF_DYNAMIC_TARGET_WINTER_OFFSET,
+    CONF_DYNAMIC_TARGET_SPRING_OFFSET,
+    CONF_DYNAMIC_TARGET_SUMMER_OFFSET,
+    CONF_DYNAMIC_TARGET_AUTUMN_OFFSET,
+    CONF_DYNAMIC_TARGET_MIN_OFFSET,
+    CONF_DYNAMIC_TARGET_MAX_OFFSET,
+    CONF_DYNAMIC_TARGET_WEATHER_MAX_OFFSET,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_TEMP,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FEELS_LIKE,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_WIND,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_UV,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_CLOUD,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FORECAST,
+    CONF_DYNAMIC_TARGET_EMA_ALPHA,
+    CONF_DYNAMIC_TARGET_MAX_STEP_PER_HOUR,
     OPT_KEY_HEAT_LOSS_W_PER_C,
     OPT_KEY_HEAT_STARTUP_OFFSET_MINUTES,
 )
@@ -91,6 +119,10 @@ _TRANSIENT_OPTION_KEYS = {
     OPT_KEY_AWAY_ACTIVE,
     OPT_KEY_AWAY_PREV_TARGET,
     OPT_KEY_POWER_SAVING_ACTIVE,
+    OPT_KEY_MANUAL_MODE_ACTIVE,
+    OPT_KEY_BOOST_ACTIVE,
+    OPT_KEY_BOOST_UNTIL,
+    OPT_KEY_AUX_ALLOWED,
     OPT_KEY_TARGET_TEMP,
     OPT_KEY_MANUAL_UNTIL,
     OPT_KEY_MANUAL_TYPE,
@@ -107,6 +139,8 @@ _TRANSIENT_OPTION_KEYS = {
     OPT_KEY_FROST_CREDIT_EXPIRES_AT,
     OPT_KEY_CREDIT_STREAK_SOURCE,
     OPT_KEY_CREDIT_STREAK_MINUTES,
+    OPT_KEY_CHEMISTRY_HISTORY,
+    OPT_KEY_CHEM_BLOCK_UNTIL,
     OPT_KEY_DERIVED_GRID_DAILY_LAST_VALUE,
     OPT_KEY_DERIVED_GRID_DAILY_LAST_DATE,
     OPT_KEY_DERIVED_GRID_MONTH_TOTAL,
@@ -155,8 +189,31 @@ _NO_RELOAD_OPTION_KEYS = {
     CONF_MAX_MERGE_RUN_MINUTES,
     CONF_MIN_CREDIT_MINUTES,
     CONF_CREDIT_SOURCES,
+    CONF_CHEM_TARGET_TDS_PPM,
+    CONF_CHEM_TARGET_ALKALINITY_PPM,
+    CONF_CHEM_COOLDOWN_MINUTES,
+    CONF_CHEM_HISTORY_LOOKBACK_MINUTES,
+    CONF_CHEM_MIN_STABLE_SAMPLES,
+    CONF_ENABLE_DYNAMIC_TARGET,
+    CONF_DYNAMIC_TARGET_WEATHER_ENTITY,
+    CONF_DYNAMIC_TARGET_WINTER_OFFSET,
+    CONF_DYNAMIC_TARGET_SPRING_OFFSET,
+    CONF_DYNAMIC_TARGET_SUMMER_OFFSET,
+    CONF_DYNAMIC_TARGET_AUTUMN_OFFSET,
+    CONF_DYNAMIC_TARGET_MIN_OFFSET,
+    CONF_DYNAMIC_TARGET_MAX_OFFSET,
+    CONF_DYNAMIC_TARGET_WEATHER_MAX_OFFSET,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_TEMP,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FEELS_LIKE,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_WIND,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_UV,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_CLOUD,
+    CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FORECAST,
+    CONF_DYNAMIC_TARGET_EMA_ALPHA,
+    CONF_DYNAMIC_TARGET_MAX_STEP_PER_HOUR,
     OPT_KEY_HEAT_LOSS_W_PER_C,
     OPT_KEY_HEAT_STARTUP_OFFSET_MINUTES,
+    OPT_KEY_AUX_ALLOWED,
 }
 
 # "button" wurde hier hinzugefügt (timer ist keine Entity-Plattform)
@@ -176,6 +233,8 @@ SERVICE_START_AWAY = "start_away"
 SERVICE_STOP_AWAY = "stop_away"
 SERVICE_START_POWER_SAVING = "start_power_saving"
 SERVICE_STOP_POWER_SAVING = "stop_power_saving"
+SERVICE_SET_DYNAMIC_TARGET = "set_dynamic_target"
+SERVICE_SET_OPTIONS = "set_options"
 
 
 # Korrektes Schema: target wird von HA automatisch hinzugefügt, nicht im Schema definieren!
@@ -208,6 +267,30 @@ START_CHLORINE_SCHEMA = vol.Schema(
 )
 
 STOP_SCHEMA = vol.Schema({}, extra=vol.ALLOW_EXTRA)
+SET_OPTIONS_SCHEMA = vol.Schema({}, extra=vol.ALLOW_EXTRA)
+
+SET_DYNAMIC_TARGET_SCHEMA = vol.Schema(
+    {
+        vol.Optional("enabled"): cv.boolean,
+        vol.Optional("weather_entity"): cv.entity_id,
+        vol.Optional("winter_offset"): vol.Coerce(float),
+        vol.Optional("spring_offset"): vol.Coerce(float),
+        vol.Optional("summer_offset"): vol.Coerce(float),
+        vol.Optional("autumn_offset"): vol.Coerce(float),
+        vol.Optional("min_offset"): vol.Coerce(float),
+        vol.Optional("max_offset"): vol.Coerce(float),
+        vol.Optional("weather_max_offset"): vol.Coerce(float),
+        vol.Optional("weight_temp"): vol.Coerce(float),
+        vol.Optional("weight_feels_like"): vol.Coerce(float),
+        vol.Optional("weight_wind"): vol.Coerce(float),
+        vol.Optional("weight_uv"): vol.Coerce(float),
+        vol.Optional("weight_cloud"): vol.Coerce(float),
+        vol.Optional("weight_forecast"): vol.Coerce(float),
+        vol.Optional("ema_alpha"): vol.Coerce(float),
+        vol.Optional("max_step_per_hour"): vol.Coerce(float),
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 
 
 def _iter_coordinators(hass: HomeAssistant):
@@ -221,31 +304,60 @@ def _iter_coordinators(hass: HomeAssistant):
 
 
 def _resolve_coordinator(hass: HomeAssistant, call) -> PoolControllerDataCoordinator | None:
-    # Neues Target-Schema: entity_id oder device_id aus call.data["target"]
-    entity_id = None
-    device_id = None
-    target = call.data.get("target")
+    # Unterstützt sowohl target.entity_id/device_id als auch legacy entity_id/device_id,
+    # jeweils als String oder Liste.
+    entity_ids: list[str] = []
+    device_ids: list[str] = []
+
+    def _as_id_list(value) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, (list, tuple, set)):
+            out: list[str] = []
+            for item in value:
+                if isinstance(item, str):
+                    out.append(item)
+            return out
+        return []
+
+    payload = call.data or {}
+    target = payload.get("target")
     if isinstance(target, dict):
-        entity_id = target.get("entity_id")
-        device_id = target.get("device_id")
-    elif "entity_id" in call.data:
-        entity_id = call.data["entity_id"]
-    elif "device_id" in call.data:
-        device_id = call.data["device_id"]
+        entity_ids.extend(_as_id_list(target.get("entity_id")))
+        device_ids.extend(_as_id_list(target.get("device_id")))
+
+    entity_ids.extend(_as_id_list(payload.get("entity_id")))
+    device_ids.extend(_as_id_list(payload.get("device_id")))
+
+    # Deduplicate while preserving order.
+    entity_ids = list(dict.fromkeys(entity_ids))
+    device_ids = list(dict.fromkeys(device_ids))
 
     ent_reg = er.async_get(hass)
-    # Falls device_id gesetzt ist, suche die zugehörige climate-Entity
-    if device_id:
-        # device_id kann mehrere Entities haben, wir nehmen die erste climate-Entity
-        for ent in ent_reg.entities.values():
-            if getattr(ent, "device_id", None) == device_id and getattr(ent, "platform", None) == "pool_controller":
-                entity_id = ent.entity_id
-                break
 
-    if entity_id:
+    # 1) Prefer explicit entity_id targets.
+    for entity_id in entity_ids:
         ent = ent_reg.async_get(entity_id)
-        if ent and ent.config_entry_id:
-            return hass.data.get(DOMAIN, {}).get(ent.config_entry_id)
+        if ent and ent.config_entry_id and getattr(ent, "platform", None) == DOMAIN:
+            coord = hass.data.get(DOMAIN, {}).get(ent.config_entry_id)
+            if isinstance(coord, PoolControllerDataCoordinator):
+                return coord
+
+    # 2) Resolve via device_id targets (first pool_controller entity on that device).
+    if device_ids:
+        device_set = set(device_ids)
+        for ent in ent_reg.entities.values():
+            if (
+                getattr(ent, "device_id", None) in device_set
+                and getattr(ent, "platform", None) == DOMAIN
+                and getattr(ent, "config_entry_id", None)
+            ):
+                coord = hass.data.get(DOMAIN, {}).get(ent.config_entry_id)
+                if isinstance(coord, PoolControllerDataCoordinator):
+                    return coord
+
     # Fallback: nur wenn genau eine Instanz existiert
     coords = list(_iter_coordinators(hass))
     if len(coords) == 1:
@@ -383,6 +495,66 @@ def _ensure_services_registered(hass: HomeAssistant):
         await coordinator.set_power_saving(False)
         await coordinator.async_request_refresh()
 
+    async def handle_set_dynamic_target(call):
+        coordinator = _resolve_coordinator(hass, call)
+        if not coordinator:
+            _warn_no_target("set_dynamic_target", call)
+            return
+
+        data = call.data or {}
+        key_map = {
+            "enabled": CONF_ENABLE_DYNAMIC_TARGET,
+            "weather_entity": CONF_DYNAMIC_TARGET_WEATHER_ENTITY,
+            "winter_offset": CONF_DYNAMIC_TARGET_WINTER_OFFSET,
+            "spring_offset": CONF_DYNAMIC_TARGET_SPRING_OFFSET,
+            "summer_offset": CONF_DYNAMIC_TARGET_SUMMER_OFFSET,
+            "autumn_offset": CONF_DYNAMIC_TARGET_AUTUMN_OFFSET,
+            "min_offset": CONF_DYNAMIC_TARGET_MIN_OFFSET,
+            "max_offset": CONF_DYNAMIC_TARGET_MAX_OFFSET,
+            "weather_max_offset": CONF_DYNAMIC_TARGET_WEATHER_MAX_OFFSET,
+            "weight_temp": CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_TEMP,
+            "weight_feels_like": CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FEELS_LIKE,
+            "weight_wind": CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_WIND,
+            "weight_uv": CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_UV,
+            "weight_cloud": CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_CLOUD,
+            "weight_forecast": CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FORECAST,
+            "ema_alpha": CONF_DYNAMIC_TARGET_EMA_ALPHA,
+            "max_step_per_hour": CONF_DYNAMIC_TARGET_MAX_STEP_PER_HOUR,
+        }
+
+        updates = {}
+        for in_key, opt_key in key_map.items():
+            if in_key in data:
+                updates[opt_key] = data[in_key]
+
+        if not updates:
+            _LOGGER.warning("pool_controller.set_dynamic_target called without update fields")
+            return
+
+        new_opts = {**(coordinator.entry.options or {})}
+        new_opts.update(updates)
+        await coordinator._async_update_entry_options(new_opts)
+        await coordinator.async_request_refresh()
+
+    async def handle_set_options(call):
+        coordinator = _resolve_coordinator(hass, call)
+        if not coordinator:
+            _warn_no_target("set_options", call)
+            return
+
+        data = dict(call.data or {})
+        for reserved in ("target", "entity_id", "device_id"):
+            data.pop(reserved, None)
+
+        if not data:
+            _LOGGER.warning("pool_controller.set_options called without option fields")
+            return
+
+        new_opts = {**(coordinator.entry.options or {})}
+        new_opts.update(data)
+        await coordinator._async_update_entry_options(new_opts)
+        await coordinator.async_request_refresh()
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_START_PAUSE,
@@ -469,6 +641,20 @@ def _ensure_services_registered(hass: HomeAssistant):
         SERVICE_STOP_POWER_SAVING,
         handle_stop_power_saving,
         schema=STOP_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_DYNAMIC_TARGET,
+        handle_set_dynamic_target,
+        schema=SET_DYNAMIC_TARGET_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_OPTIONS,
+        handle_set_options,
+        schema=SET_OPTIONS_SCHEMA,
     )
 
     hass.data[DOMAIN][_SERVICES_REGISTERED_KEY] = True

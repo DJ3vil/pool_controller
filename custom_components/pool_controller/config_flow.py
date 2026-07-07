@@ -120,6 +120,31 @@ def _sanitizer_salt_schema(curr: dict | None = None):
         )
     })
 
+def _sanitizer_product_schema(default_product, options=None):
+    return vol.Schema({
+        vol.Required(CONF_SANITIZER_PRODUCT, default=default_product): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=(options or []),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        )
+    })
+
+def _chemistry_schema(curr: dict | None = None):
+    c = curr or {}
+    return vol.Schema({
+        vol.Optional(CONF_CHEM_TARGET_TDS_PPM, default=c.get(CONF_CHEM_TARGET_TDS_PPM, DEFAULT_CHEM_TARGET_TDS_PPM)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=500, max=3500, step=50, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="ppm")),
+        vol.Optional(CONF_CHEM_TARGET_ALKALINITY_PPM, default=c.get(CONF_CHEM_TARGET_ALKALINITY_PPM, DEFAULT_CHEM_TARGET_ALKALINITY_PPM)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=70, max=160, step=5, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="ppm")),
+        vol.Optional(CONF_CHEM_COOLDOWN_MINUTES, default=c.get(CONF_CHEM_COOLDOWN_MINUTES, DEFAULT_CHEM_COOLDOWN_MINUTES)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=24 * 60, step=5, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="min")),
+        vol.Optional(CONF_CHEM_HISTORY_LOOKBACK_MINUTES, default=c.get(CONF_CHEM_HISTORY_LOOKBACK_MINUTES, DEFAULT_CHEM_HISTORY_LOOKBACK_MINUTES)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=120, max=24 * 60, step=30, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="min")),
+        vol.Optional(CONF_CHEM_MIN_STABLE_SAMPLES, default=c.get(CONF_CHEM_MIN_STABLE_SAMPLES, DEFAULT_CHEM_MIN_STABLE_SAMPLES)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=2, max=12, step=1, mode=selector.NumberSelectorMode.BOX)),
+    })
+
 def _climate_schema(curr: dict | None = None):
     c = curr or {}
     return vol.Schema({
@@ -134,6 +159,28 @@ def _climate_schema(curr: dict | None = None):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=20000, step=50, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="W")),
         vol.Optional(CONF_COLD_TOLERANCE, default=c.get(CONF_COLD_TOLERANCE, DEFAULT_COLD_TOLERANCE)): vol.Coerce(float),
         vol.Optional(CONF_HOT_TOLERANCE, default=c.get(CONF_HOT_TOLERANCE, DEFAULT_HOT_TOLERANCE)): vol.Coerce(float),
+    })
+
+def _dynamic_target_schema(curr: dict | None = None):
+    c = curr or {}
+    return vol.Schema({
+        vol.Optional(CONF_ENABLE_DYNAMIC_TARGET, default=c.get(CONF_ENABLE_DYNAMIC_TARGET, DEFAULT_ENABLE_DYNAMIC_TARGET)): bool,
+        vol.Optional(CONF_DYNAMIC_TARGET_WEATHER_ENTITY, default=c.get(CONF_DYNAMIC_TARGET_WEATHER_ENTITY, c.get(CONF_EVENT_WEATHER_ENTITY, ""))): selector.EntitySelector(selector.EntitySelectorConfig(domain="weather")),
+        vol.Optional(CONF_DYNAMIC_TARGET_WINTER_OFFSET, default=c.get(CONF_DYNAMIC_TARGET_WINTER_OFFSET, DEFAULT_DYNAMIC_TARGET_WINTER_OFFSET)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_SPRING_OFFSET, default=c.get(CONF_DYNAMIC_TARGET_SPRING_OFFSET, DEFAULT_DYNAMIC_TARGET_SPRING_OFFSET)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_SUMMER_OFFSET, default=c.get(CONF_DYNAMIC_TARGET_SUMMER_OFFSET, DEFAULT_DYNAMIC_TARGET_SUMMER_OFFSET)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_AUTUMN_OFFSET, default=c.get(CONF_DYNAMIC_TARGET_AUTUMN_OFFSET, DEFAULT_DYNAMIC_TARGET_AUTUMN_OFFSET)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_MIN_OFFSET, default=c.get(CONF_DYNAMIC_TARGET_MIN_OFFSET, DEFAULT_DYNAMIC_TARGET_MIN_OFFSET)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_MAX_OFFSET, default=c.get(CONF_DYNAMIC_TARGET_MAX_OFFSET, DEFAULT_DYNAMIC_TARGET_MAX_OFFSET)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_WEATHER_MAX_OFFSET, default=c.get(CONF_DYNAMIC_TARGET_WEATHER_MAX_OFFSET, DEFAULT_DYNAMIC_TARGET_WEATHER_MAX_OFFSET)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_TEMP, default=c.get(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_TEMP, DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_TEMP)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FEELS_LIKE, default=c.get(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FEELS_LIKE, DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_FEELS_LIKE)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_WIND, default=c.get(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_WIND, DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_WIND)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_UV, default=c.get(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_UV, DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_UV)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_CLOUD, default=c.get(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_CLOUD, DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_CLOUD)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FORECAST, default=c.get(CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FORECAST, DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_FORECAST)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_EMA_ALPHA, default=c.get(CONF_DYNAMIC_TARGET_EMA_ALPHA, DEFAULT_DYNAMIC_TARGET_EMA_ALPHA)): vol.Coerce(float),
+        vol.Optional(CONF_DYNAMIC_TARGET_MAX_STEP_PER_HOUR, default=c.get(CONF_DYNAMIC_TARGET_MAX_STEP_PER_HOUR, DEFAULT_DYNAMIC_TARGET_MAX_STEP_PER_HOUR)): vol.Coerce(float),
     })
 
 def _costs_schema(curr: dict | None = None):
@@ -343,6 +390,54 @@ def _sanitizer_options(lang: str):
         {"value": "mixed", "label": (labels or {}).get("mixed", "mixed")},
     ]
 
+def _sanitizer_product_options(lang: str):
+    labels = {
+        "de": {
+            "dichlor": "Dichlor (Troclosennatrium)",
+            "trichlor": "Trichlor (Tabletten)",
+            "cal_hypo": "Calciumhypochlorit",
+            "liquid_chlorine": "Flüssigchlor (Natriumhypochlorit)",
+            "salt_cell": "Salzelektrolyse-Zelle",
+            "other": "Andere/Unbekannt",
+        },
+        "en": {
+            "dichlor": "Dichlor (troclosene sodium)",
+            "trichlor": "Trichlor (tablets)",
+            "cal_hypo": "Calcium hypochlorite",
+            "liquid_chlorine": "Liquid chlorine (sodium hypochlorite)",
+            "salt_cell": "Salt chlorinator cell",
+            "other": "Other/Unknown",
+        },
+        "es": {
+            "dichlor": "Dicloro (trocloseno sódico)",
+            "trichlor": "Tricloro (tabletas)",
+            "cal_hypo": "Hipoclorito cálcico",
+            "liquid_chlorine": "Cloro líquido (hipoclorito sódico)",
+            "salt_cell": "Célula de cloración salina",
+            "other": "Otro/Desconocido",
+        },
+        "fr": {
+            "dichlor": "Dichlore (troclosène sodique)",
+            "trichlor": "Trichlore (galets)",
+            "cal_hypo": "Hypochlorite de calcium",
+            "liquid_chlorine": "Chlore liquide (hypochlorite de sodium)",
+            "salt_cell": "Cellule d'électrolyse au sel",
+            "other": "Autre/Inconnu",
+        },
+    }.get((lang or "").split("-")[0], None)
+
+    def _label(key):
+        return (labels or {}).get(key, key)
+
+    return [
+        {"value": "dichlor", "label": _label("dichlor")},
+        {"value": "trichlor", "label": _label("trichlor")},
+        {"value": "cal_hypo", "label": _label("cal_hypo")},
+        {"value": "liquid_chlorine", "label": _label("liquid_chlorine")},
+        {"value": "salt_cell", "label": _label("salt_cell")},
+        {"value": "other", "label": _label("other")},
+    ]
+
 def _credit_source_options(lang: str | None = None):
     labels = {
         "de": {
@@ -426,7 +521,12 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             errors = _validate_switch_targets(self.hass, user_input)
             if not errors:
-                self.data.update(user_input)
+                normalized = dict(user_input)
+                # Persist explicit clear when aux heating is disabled so stale
+                # entry.data mappings cannot be revived via fallback logic.
+                if not bool(normalized.get(CONF_ENABLE_AUX_HEATING, False)):
+                    normalized[CONF_AUX_HEATING_SWITCH] = ""
+                self.data.update(normalized)
                 return await self.async_step_water_quality()
 
         return self.async_show_form(
@@ -456,6 +556,10 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.data[CONF_SANITIZER_MODE] = mode
             # Keep legacy flag in sync for backward compatibility.
             self.data[CONF_ENABLE_SALTWATER] = (mode in ("saltwater", "mixed"))
+            if mode in ("chlorine", "mixed"):
+                return await self.async_step_sanitizer_product()
+            # Salzwasser ohne klassisches Chlorprodukt
+            self.data.pop(CONF_SANITIZER_PRODUCT, None)
             if mode in ("saltwater", "mixed"):
                 return await self.async_step_sanitizer_salt()
             return await self.async_step_climate()
@@ -469,11 +573,33 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             last_step=False,
         )
 
+    async def async_step_sanitizer_product(self, user_input=None):
+        """Concrete sanitizer product/profile selection."""
+        if user_input is not None:
+            product = (user_input.get(CONF_SANITIZER_PRODUCT) or DEFAULT_SANITIZER_PRODUCT).strip().lower()
+            if product not in ("dichlor", "trichlor", "cal_hypo", "liquid_chlorine", "salt_cell", "other"):
+                product = DEFAULT_SANITIZER_PRODUCT
+            self.data[CONF_SANITIZER_PRODUCT] = product
+
+            mode = (self.data.get(CONF_SANITIZER_MODE) or DEFAULT_SANITIZER_MODE).strip().lower()
+            if mode in ("saltwater", "mixed"):
+                return await self.async_step_sanitizer_salt()
+            return await self.async_step_chemistry()
+
+        lang = (getattr(self.hass.config, "language", "en") or "en").split("-")[0]
+        curr = {**self.data}
+        default_product = curr.get(CONF_SANITIZER_PRODUCT, DEFAULT_SANITIZER_PRODUCT)
+        return self.async_show_form(
+            step_id="sanitizer_product",
+            data_schema=_sanitizer_product_schema(default_product, _sanitizer_product_options(lang)),
+            last_step=False,
+        )
+
     async def async_step_sanitizer_salt(self, user_input=None):
         """Ask for target salt level when saltwater is enabled."""
         if user_input is not None:
             self.data.update(user_input)
-            return await self.async_step_climate()
+            return await self.async_step_chemistry()
 
         curr = {**self.data}
         return self.async_show_form(
@@ -482,11 +608,24 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             last_step=False,
         )
 
+    async def async_step_chemistry(self, user_input=None):
+        """Simple chemistry estimation tuning (recommended defaults usually fit most pools)."""
+        if user_input is not None:
+            self.data.update(user_input)
+            return await self.async_step_climate()
+
+        curr = {**self.data}
+        return self.async_show_form(
+            step_id="chemistry",
+            data_schema=_chemistry_schema(curr),
+            last_step=False,
+        )
+
     async def async_step_climate(self, user_input=None):
         """Thermostat-like settings for temperature control."""
         if user_input is not None:
             self.data.update(user_input)
-            return await self.async_step_frost()
+            return await self.async_step_dynamic_target()
 
         curr = {**self.data}
         errors = {}
@@ -494,6 +633,19 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="climate",
             errors=errors,
             data_schema=_climate_schema(curr),
+            last_step=False,
+        )
+
+    async def async_step_dynamic_target(self, user_input=None):
+        """Optional dynamic target setpoint based on season and weather."""
+        if user_input is not None:
+            self.data.update(user_input)
+            return await self.async_step_frost()
+
+        curr = {**self.data}
+        return self.async_show_form(
+            step_id="dynamic_target",
+            data_schema=_dynamic_target_schema(curr),
             last_step=False,
         )
 
@@ -651,7 +803,10 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
                 "switches",
                 "water_quality",
                 "sanitizer",
+                "sanitizer_product",
+                "chemistry",
                 "climate",
+                "dynamic_target",
                 "frost",
                 "calendars",
                 "filter",
@@ -688,7 +843,12 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             errors = _validate_switch_targets(self.hass, user_input)
             if not errors:
-                self.options.update(user_input)
+                normalized = dict(user_input)
+                # Persist explicit clear when aux heating is disabled so stale
+                # entry.data mappings cannot be revived via fallback logic.
+                if not bool(normalized.get(CONF_ENABLE_AUX_HEATING, False)):
+                    normalized[CONF_AUX_HEATING_SWITCH] = ""
+                self.options.update(normalized)
                 if self._menu_mode:
                     return self.async_create_entry(title="", data=self.options)
                 return await self.async_step_water_quality()
@@ -725,6 +885,10 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
             self.options[CONF_SANITIZER_MODE] = mode
             # Keep legacy flag in sync for backward compatibility.
             self.options[CONF_ENABLE_SALTWATER] = (mode in ("saltwater", "mixed"))
+            if mode in ("chlorine", "mixed"):
+                return await self.async_step_sanitizer_product()
+            # Salzwasser ohne klassisches Chlorprodukt
+            self.options.pop(CONF_SANITIZER_PRODUCT, None)
             if mode in ("saltwater", "mixed"):
                 return await self.async_step_sanitizer_salt()
             if self._menu_mode:
@@ -747,8 +911,47 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
             last_step=False,
         )
 
+    async def async_step_sanitizer_product(self, user_input=None):
+        """Concrete sanitizer product/profile selection."""
+        if user_input is not None:
+            product = (user_input.get(CONF_SANITIZER_PRODUCT) or DEFAULT_SANITIZER_PRODUCT).strip().lower()
+            if product not in ("dichlor", "trichlor", "cal_hypo", "liquid_chlorine", "salt_cell", "other"):
+                product = DEFAULT_SANITIZER_PRODUCT
+            self.options[CONF_SANITIZER_PRODUCT] = product
+
+            mode = (self.options.get(CONF_SANITIZER_MODE) or DEFAULT_SANITIZER_MODE).strip().lower()
+            if mode in ("saltwater", "mixed"):
+                return await self.async_step_sanitizer_salt()
+            if self._menu_mode:
+                return self.async_create_entry(title="", data=self.options)
+            return await self.async_step_chemistry()
+
+        curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
+        lang = (getattr(self.hass.config, "language", "en") or "en").split("-")[0]
+        default_product = curr.get(CONF_SANITIZER_PRODUCT, DEFAULT_SANITIZER_PRODUCT)
+        return self.async_show_form(
+            step_id="sanitizer_product",
+            data_schema=_sanitizer_product_schema(default_product, _sanitizer_product_options(lang)),
+            last_step=False,
+        )
+
     async def async_step_sanitizer_salt(self, user_input=None):
         """Ask for target salt level when saltwater is enabled."""
+        if user_input is not None:
+            self.options.update(user_input)
+            if self._menu_mode:
+                return self.async_create_entry(title="", data=self.options)
+            return await self.async_step_chemistry()
+
+        curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
+        return self.async_show_form(
+            step_id="sanitizer_salt",
+            data_schema=_sanitizer_salt_schema(curr),
+            last_step=False,
+        )
+
+    async def async_step_chemistry(self, user_input=None):
+        """Simple chemistry estimation tuning."""
         if user_input is not None:
             self.options.update(user_input)
             if self._menu_mode:
@@ -757,8 +960,8 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
 
         curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
         return self.async_show_form(
-            step_id="sanitizer_salt",
-            data_schema=_sanitizer_salt_schema(curr),
+            step_id="chemistry",
+            data_schema=_chemistry_schema(curr),
             last_step=False,
         )
 
@@ -768,12 +971,27 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
             self.options.update(user_input)
             if self._menu_mode:
                 return self.async_create_entry(title="", data=self.options)
-            return await self.async_step_frost()
+            return await self.async_step_dynamic_target()
 
         curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
         return self.async_show_form(
             step_id="climate",
             data_schema=_climate_schema(curr),
+            last_step=False,
+        )
+
+    async def async_step_dynamic_target(self, user_input=None):
+        """Optional dynamic target setpoint based on season and weather."""
+        if user_input is not None:
+            self.options.update(user_input)
+            if self._menu_mode:
+                return self.async_create_entry(title="", data=self.options)
+            return await self.async_step_frost()
+
+        curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
+        return self.async_show_form(
+            step_id="dynamic_target",
+            data_schema=_dynamic_target_schema(curr),
             last_step=False,
         )
 

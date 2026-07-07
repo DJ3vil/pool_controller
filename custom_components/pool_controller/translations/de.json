@@ -68,6 +68,17 @@
                     "sanitizer_mode": "Chlor = klassische Dosierung, Salzwasser = Salzelektrolyse, Mischbetrieb = Salz + Chlor"
                 }
             },
+            "sanitizer_product": {
+                "title": "Desinfektionsmittel",
+                "description": "Konkretes Mittel für die Chlorung auswählen (für bessere Auswertung/Schätzung).",
+                "submit": "Weiter",
+                "data": {
+                    "sanitizer_product": "Chlorprodukt"
+                },
+                "data_description": {
+                    "sanitizer_product": "Wähle das hauptsächlich verwendete Chlorprodukt (z.B. Dichlor, Trichlor, Calciumhypochlorit, Flüssigchlor)."
+                }
+            },
             "sanitizer_salt": {
                 "title": "Ziel-Salzgehalt",
                 "description": "Zielwert für den Salzgehalt (g/L) im Salzwasser- bzw. Mischbetrieb.",
@@ -77,6 +88,25 @@
                 },
                 "data_description": {
                     "target_salt_g_l": "Wird genutzt, um Empfehlungen bei zu wenig Salz zu berechnen"
+                }
+            },
+            "chemistry": {
+                "title": "Chemie-Schätzung",
+                "description": "Einfache Feineinstellung für robuste Chemie-Empfehlungen. Die Standardwerte passen für die meisten Pools.",
+                "submit": "Weiter",
+                "data": {
+                    "chem_target_tds_ppm": "Ziel TDS (ppm)",
+                    "chem_target_alkalinity_ppm": "Ziel Alkalinität (ppm)",
+                    "chem_cooldown_minutes": "Sperrzeit nach Aktivität/Chemiezugabe (min)",
+                    "chem_history_lookback_minutes": "Verlaufsfenster stabile Werte (min)",
+                    "chem_min_stable_samples": "Mindestanzahl stabiler Messungen"
+                },
+                "data_description": {
+                    "chem_target_tds_ppm": "Zielwert für Wasserwechsel-Empfehlungen bei hohem TDS",
+                    "chem_target_alkalinity_ppm": "Referenzziel für Alkalinitäts-Empfehlungen",
+                    "chem_cooldown_minutes": "Während dieser Zeit keine Alkalinitäts-Aktion (Misch-/Reaktionsphase)",
+                    "chem_history_lookback_minutes": "Wie weit zurück stabile Messungen berücksichtigt werden",
+                    "chem_min_stable_samples": "Benötigte stabile Messpunkte für konkrete Empfehlungen"
                 }
             },
             "climate": {
@@ -104,6 +134,49 @@
                     "heater_aux_power_w": "Nennleistung der Zusatzheizung (W) für die Vorheiz-Zeitberechnung (wenn Zusatzheizung aktiviert ist). Gesamt = Basis + Zusatz.",
                     "cold_tolerance": "Heizung startet, wenn Wassertemperatur unter Ziel minus diesem Wert liegt",
                     "hot_tolerance": "Heizung stoppt, wenn Wassertemperatur bei/über Ziel plus diesem Wert liegt"
+                }
+            },
+            "dynamic_target": {
+                "title": "Dynamische Zieltemperatur",
+                "description": "Optional: passt die effektive Zieltemperatur je nach Jahreszeit und Wetter an.",
+                "submit": "Weiter",
+                "data": {
+                    "enable_dynamic_target": "Dynamisches Ziel aktivieren",
+                    "dynamic_target_weather_entity": "Wetter-Entity",
+                    "dynamic_target_winter_offset": "Winter-Offset (°C)",
+                    "dynamic_target_spring_offset": "Frühlings-Offset (°C)",
+                    "dynamic_target_summer_offset": "Sommer-Offset (°C)",
+                    "dynamic_target_autumn_offset": "Herbst-Offset (°C)",
+                    "dynamic_target_min_offset": "Minimaler Offset (°C)",
+                    "dynamic_target_max_offset": "Maximaler Offset (°C)",
+                    "dynamic_target_weather_max_offset": "Max. Wetter-Offset (°C)",
+                    "dynamic_target_weather_weight_temp": "Gewicht: Temperatur",
+                    "dynamic_target_weather_weight_feels_like": "Gewicht: Gefühlt",
+                    "dynamic_target_weather_weight_wind": "Gewicht: Wind",
+                    "dynamic_target_weather_weight_uv": "Gewicht: UV",
+                    "dynamic_target_weather_weight_cloud": "Gewicht: Bewölkung",
+                    "dynamic_target_weather_weight_forecast": "Gewicht: Vorhersage-Temperatur",
+                    "dynamic_target_ema_alpha": "Glättung (Alpha)",
+                    "dynamic_target_max_step_per_hour": "Max. Offset-Änderung pro Stunde (°C/h)"
+                },
+                "data_description": {
+                    "enable_dynamic_target": "Wenn deaktiviert, entspricht das effektive Ziel dem Basisziel.",
+                    "dynamic_target_weather_entity": "Wetter-Entity für den Wetteranteil.",
+                    "dynamic_target_winter_offset": "Saisonaler Offset-Anker für den Winter.",
+                    "dynamic_target_spring_offset": "Saisonaler Offset-Anker für den Frühling.",
+                    "dynamic_target_summer_offset": "Saisonaler Offset-Anker für den Sommer.",
+                    "dynamic_target_autumn_offset": "Saisonaler Offset-Anker für den Herbst.",
+                    "dynamic_target_min_offset": "Untere Begrenzung für den Gesamt-Offset.",
+                    "dynamic_target_max_offset": "Obere Begrenzung für den Gesamt-Offset.",
+                    "dynamic_target_weather_max_offset": "Absolute Begrenzung des Wetteranteils.",
+                    "dynamic_target_weather_weight_temp": "Einfluss der gemessenen Außentemperatur.",
+                    "dynamic_target_weather_weight_feels_like": "Einfluss der gefühlten Temperatur.",
+                    "dynamic_target_weather_weight_wind": "Einfluss der Windgeschwindigkeit.",
+                    "dynamic_target_weather_weight_uv": "Einfluss des UV-Index.",
+                    "dynamic_target_weather_weight_cloud": "Einfluss der Bewölkung.",
+                    "dynamic_target_weather_weight_forecast": "Einfluss des kurzfristigen Vorhersage-Mittels.",
+                    "dynamic_target_ema_alpha": "EMA-Glättungsfaktor zwischen 0 und 1.",
+                    "dynamic_target_max_step_per_hour": "Begrenzt die Offset-Änderungsgeschwindigkeit."
                 }
             },
             "frost": {
@@ -279,7 +352,10 @@
                     "switches": "Schalter & Leistung",
                     "water_quality": "Wasserqualität",
                     "sanitizer": "Desinfektion",
+                    "sanitizer_product": "Desinfektionsmittel",
+                    "chemistry": "Chemie-Schätzung",
                     "climate": "Temperaturregelung",
+                    "dynamic_target": "Dynamische Zieltemperatur",
                     "frost": "Frostschutz",
                     "calendars": "Kalender & Ruhezeiten",
                     "filter": "Filter",
@@ -357,6 +433,17 @@
                     "sanitizer_mode": "Chlor = klassische Dosierung, Salzwasser = Salzelektrolyse, Mischbetrieb = Salz + Chlor"
                 }
             },
+            "sanitizer_product": {
+                "title": "Desinfektionsmittel",
+                "description": "Konkretes Mittel für die Chlorung auswählen (für bessere Auswertung/Schätzung).",
+                "submit": "Weiter",
+                "data": {
+                    "sanitizer_product": "Chlorprodukt"
+                },
+                "data_description": {
+                    "sanitizer_product": "Wähle das hauptsächlich verwendete Chlorprodukt (z.B. Dichlor, Trichlor, Calciumhypochlorit, Flüssigchlor)."
+                }
+            },
             "sanitizer_salt": {
                 "title": "Ziel-Salzgehalt",
                 "description": "Zielwert für den Salzgehalt (g/L) im Salzwasser- bzw. Mischbetrieb.",
@@ -366,6 +453,25 @@
                 },
                 "data_description": {
                     "target_salt_g_l": "Wird genutzt, um Empfehlungen bei zu wenig Salz zu berechnen"
+                }
+            },
+            "chemistry": {
+                "title": "Chemie-Schätzung",
+                "description": "Einfache Feineinstellung für robuste Chemie-Empfehlungen. Die Standardwerte passen für die meisten Pools.",
+                "submit": "Weiter",
+                "data": {
+                    "chem_target_tds_ppm": "Ziel TDS (ppm)",
+                    "chem_target_alkalinity_ppm": "Ziel Alkalinität (ppm)",
+                    "chem_cooldown_minutes": "Sperrzeit nach Aktivität/Chemiezugabe (min)",
+                    "chem_history_lookback_minutes": "Verlaufsfenster stabile Werte (min)",
+                    "chem_min_stable_samples": "Mindestanzahl stabiler Messungen"
+                },
+                "data_description": {
+                    "chem_target_tds_ppm": "Zielwert für Wasserwechsel-Empfehlungen bei hohem TDS",
+                    "chem_target_alkalinity_ppm": "Referenzziel für Alkalinitäts-Empfehlungen",
+                    "chem_cooldown_minutes": "Während dieser Zeit keine Alkalinitäts-Aktion (Misch-/Reaktionsphase)",
+                    "chem_history_lookback_minutes": "Wie weit zurück stabile Messungen berücksichtigt werden",
+                    "chem_min_stable_samples": "Benötigte stabile Messpunkte für konkrete Empfehlungen"
                 }
             },
             "climate": {
@@ -393,6 +499,49 @@
                     "heater_aux_power_w": "Nennleistung der Zusatzheizung (W) für die Vorheiz-Zeitberechnung (wenn Zusatzheizung aktiviert ist). Gesamt = Basis + Zusatz.",
                     "cold_tolerance": "Heizung startet, wenn Wassertemperatur unter Ziel minus diesem Wert liegt",
                     "hot_tolerance": "Heizung stoppt, wenn Wassertemperatur bei/über Ziel plus diesem Wert liegt"
+                }
+            },
+            "dynamic_target": {
+                "title": "Dynamische Zieltemperatur",
+                "description": "Optional: passt die effektive Zieltemperatur je nach Jahreszeit und Wetter an.",
+                "submit": "Weiter",
+                "data": {
+                    "enable_dynamic_target": "Dynamisches Ziel aktivieren",
+                    "dynamic_target_weather_entity": "Wetter-Entity",
+                    "dynamic_target_winter_offset": "Winter-Offset (°C)",
+                    "dynamic_target_spring_offset": "Frühlings-Offset (°C)",
+                    "dynamic_target_summer_offset": "Sommer-Offset (°C)",
+                    "dynamic_target_autumn_offset": "Herbst-Offset (°C)",
+                    "dynamic_target_min_offset": "Minimaler Offset (°C)",
+                    "dynamic_target_max_offset": "Maximaler Offset (°C)",
+                    "dynamic_target_weather_max_offset": "Max. Wetter-Offset (°C)",
+                    "dynamic_target_weather_weight_temp": "Gewicht: Temperatur",
+                    "dynamic_target_weather_weight_feels_like": "Gewicht: Gefühlt",
+                    "dynamic_target_weather_weight_wind": "Gewicht: Wind",
+                    "dynamic_target_weather_weight_uv": "Gewicht: UV",
+                    "dynamic_target_weather_weight_cloud": "Gewicht: Bewölkung",
+                    "dynamic_target_weather_weight_forecast": "Gewicht: Vorhersage-Temperatur",
+                    "dynamic_target_ema_alpha": "Glättung (Alpha)",
+                    "dynamic_target_max_step_per_hour": "Max. Offset-Änderung pro Stunde (°C/h)"
+                },
+                "data_description": {
+                    "enable_dynamic_target": "Wenn deaktiviert, entspricht das effektive Ziel dem Basisziel.",
+                    "dynamic_target_weather_entity": "Wetter-Entity für den Wetteranteil.",
+                    "dynamic_target_winter_offset": "Saisonaler Offset-Anker für den Winter.",
+                    "dynamic_target_spring_offset": "Saisonaler Offset-Anker für den Frühling.",
+                    "dynamic_target_summer_offset": "Saisonaler Offset-Anker für den Sommer.",
+                    "dynamic_target_autumn_offset": "Saisonaler Offset-Anker für den Herbst.",
+                    "dynamic_target_min_offset": "Untere Begrenzung für den Gesamt-Offset.",
+                    "dynamic_target_max_offset": "Obere Begrenzung für den Gesamt-Offset.",
+                    "dynamic_target_weather_max_offset": "Absolute Begrenzung des Wetteranteils.",
+                    "dynamic_target_weather_weight_temp": "Einfluss der gemessenen Außentemperatur.",
+                    "dynamic_target_weather_weight_feels_like": "Einfluss der gefühlten Temperatur.",
+                    "dynamic_target_weather_weight_wind": "Einfluss der Windgeschwindigkeit.",
+                    "dynamic_target_weather_weight_uv": "Einfluss des UV-Index.",
+                    "dynamic_target_weather_weight_cloud": "Einfluss der Bewölkung.",
+                    "dynamic_target_weather_weight_forecast": "Einfluss des kurzfristigen Vorhersage-Mittels.",
+                    "dynamic_target_ema_alpha": "EMA-Glättungsfaktor zwischen 0 und 1.",
+                    "dynamic_target_max_step_per_hour": "Begrenzt die Offset-Änderungsgeschwindigkeit."
                 }
             },
             "frost": {
@@ -761,6 +910,39 @@
             "tds_status": {
                 "name": "TDS-Status"
             },
+            "alkalinity_estimated_ppm": {
+                "name": "Geschätzte Alkalinität"
+            },
+            "alkalinity_status": {
+                "name": "Alkalinitäts-Status"
+            },
+            "alkalinity_action": {
+                "name": "Alkalinitäts-Aktion"
+            },
+            "alkalinity_target_ppm": {
+                "name": "Alkalinitäts-Ziel"
+            },
+            "alkalinity_total_dose_g": {
+                "name": "Alkalinitäts-Gesamtdosis (g)"
+            },
+            "alkalinity_step_dose_g": {
+                "name": "Alkalinitäts-Schrittdosis (g)"
+            },
+            "alkalinity_steps": {
+                "name": "Alkalinitäts-Dosierschritte"
+            },
+            "alkalinity_wait_minutes": {
+                "name": "Wartezeit bis Nachmessung (min)"
+            },
+            "alkalinity_water_change_percent": {
+                "name": "Wasserwechsel vor Alkalinitätskorrektur (%)"
+            },
+            "alkalinity_plus_g": {
+                "name": "Alkalinität erhöhen (g)"
+            },
+            "alkalinity_minus_g": {
+                "name": "Alkalinität senken (g)"
+            },
             "tds_water_change_liters": {
                 "name": "Empfohlener Wasserwechsel (L)"
             },
@@ -865,6 +1047,24 @@
             },
             "bathing_minutes": {
                 "name": "Konfigurierte Bade-Dauer (min)"
+            },
+            "target_temp_base": {
+                "name": "Target temperature (base)"
+            },
+            "target_temp_effective": {
+                "name": "Target temperature (effective)"
+            },
+            "target_temp_offset": {
+                "name": "Target offset"
+            },
+            "target_temp_season_offset": {
+                "name": "Saison-Offset"
+            },
+            "target_temp_weather_offset": {
+                "name": "Wetter-Offset"
+            },
+            "dynamic_target_profile": {
+                "name": "Dynamisches Zielprofil"
             }
         }
     },
@@ -890,7 +1090,9 @@
                     "pv": "PV",
                     "frost": "Frostschutz",
                     "pause": "Pause",
-                    "maintenance": "Wartung"
+                    "maintenance": "Wartung",
+                    "manual": "Manuell",
+                    "boost": "Boost"
                 }
             },
             "heat_reason": {
@@ -900,7 +1102,8 @@
                     "bathing": "Baden",
                     "preheat": "Vorheizen",
                     "power_saving": "Stromsparen",
-                    "pv": "PV"
+                    "pv": "PV",
+                    "boost": "Boost"
                 }
             },
             "sanitizer_mode": {
@@ -908,6 +1111,34 @@
                     "chlorine": "Chlor",
                     "saltwater": "Salzwasser",
                     "mixed": "Mischbetrieb"
+                }
+            },
+            "alkalinity_status": {
+                "state": {
+                    "unknown": "Unbekannt",
+                    "very_low": "Sehr niedrig",
+                    "low": "Niedrig",
+                    "optimal": "Optimal",
+                    "high": "Hoch",
+                    "critical_high": "Kritisch hoch"
+                }
+            },
+            "alkalinity_action": {
+                "state": {
+                    "measure_first": "Kalibrierung läuft: auf stabile Samples warten",
+                    "none": "Keine Aktion",
+                    "raise_bicarbonate": "Mit Natriumhydrogencarbonat (TA+) anheben",
+                    "lower_ph_minus": "Mit pH- senken",
+                    "water_change_then_adjust": "Zuerst Wasserwechsel, dann korrigieren"
+                }
+            },
+            "dynamic_target_profile": {
+                "state": {
+                    "off": "Aus",
+                    "winter": "Winter",
+                    "spring": "Frühling",
+                    "summer": "Sommer",
+                    "autumn": "Herbst"
                 }
             }
         }

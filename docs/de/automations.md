@@ -1,14 +1,14 @@
-# Common Automations
+# Typische Automationen
 
-**English** | [Deutsch](de/automations.md)
+[English](../automations.md) | **Deutsch**
 
-[← Back to README](../README.md)
+[← Zurück zur README](../../README.de.md)
 
-## Example 1: Heat pool before weekend bathing
+## Beispiel 1: Pool vor dem Wochenendbaden aufheizen
 
 ```yaml
 automation:
-  - alias: "Heat pool for weekend bathing"
+  - alias: "Pool fürs Wochenendbaden aufheizen"
     trigger:
       - platform: time
         at: "14:00"
@@ -20,14 +20,14 @@ automation:
         data:
           target:
             entity_id: climate.my_pool
-          duration_minutes: 180  # 3-hour session
+          duration_minutes: 180
 ```
 
-## Example 2: Emergency pause on low chlorine
+## Beispiel 2: Notfallpause bei zu wenig Chlor
 
 ```yaml
 automation:
-  - alias: "Pause on low chlorine alert"
+  - alias: "Pause bei Chlorwarnung"
     trigger:
       - platform: state
         entity_id: binary_sensor.my_pool_low_chlor
@@ -39,32 +39,33 @@ automation:
             entity_id: climate.my_pool
           duration_minutes: 60
       - action: notify.send_message
-          message: "Pool paused - chlorine too low!"
+        data:
+          message: "Pool pausiert - Chlor zu niedrig!"
 ```
 
-## Example 3: Extended filtering on hot days
+## Beispiel 3: Längere Filterung an heißen Tagen
 
 ```yaml
 automation:
-  - alias: "Extra filter on high temp days"
+  - alias: "Extra-Filterung an heißen Tagen"
     trigger:
       - platform: numeric_state
         entity_id: climate.my_pool
         attribute: current_temperature
-        above: 30  # Above 30°C
+        above: 30
     action:
       - action: pool_controller.start_filter
         data:
           target:
             entity_id: climate.my_pool
-          duration_minutes: 120  # Extra 2 hours
+          duration_minutes: 120
 ```
 
-## Example 4: Daily filtering at 2 AM
+## Beispiel 4: Tägliche Filterung um 2 Uhr nachts
 
 ```yaml
 automation:
-  - alias: "Daily filter cycle"
+  - alias: "Täglicher Filterzyklus"
     trigger:
       - platform: time
         at: "02:00"
@@ -78,12 +79,13 @@ automation:
           target:
             entity_id: climate.my_pool
           duration_minutes: 45
+```
 
-## Example 5: Enable Away mode when nobody is home
+## Beispiel 5: Away-Modus aktivieren, wenn niemand zu Hause ist
 
 ```yaml
 automation:
-  - alias: "Pool away when house is empty"
+  - alias: "Pool auf Away wenn niemand da ist"
     trigger:
       - platform: state
         entity_id: group.family
@@ -94,7 +96,7 @@ automation:
           target:
             entity_id: climate.my_pool
 
-  - alias: "Pool normal when someone returns"
+  - alias: "Pool zurück auf normal wenn jemand heimkommt"
     trigger:
       - platform: state
         entity_id: group.family
@@ -104,5 +106,4 @@ automation:
         data:
           target:
             entity_id: climate.my_pool
-```
 ```

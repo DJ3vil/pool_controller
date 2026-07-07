@@ -68,6 +68,17 @@
           "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both"
         }
       },
+      "sanitizer_product": {
+        "title": "Sanitizer product",
+        "description": "Select the concrete chlorine product for improved analysis/estimation.",
+        "submit": "Continue",
+        "data": {
+          "sanitizer_product": "Chlorine product"
+        },
+        "data_description": {
+          "sanitizer_product": "Choose the primary chlorine product you use (e.g. dichlor, trichlor, calcium hypochlorite, liquid chlorine)."
+        }
+      },
       "sanitizer_salt": {
         "title": "Salt target",
         "description": "Set the target salt level for saltwater (or mixed) operation.",
@@ -77,6 +88,25 @@
         },
         "data_description": {
           "target_salt_g_l": "Used to compute recommendations when salt is too low"
+        }
+      },
+      "chemistry": {
+        "title": "Chemistry estimation",
+        "description": "Simple tuning for robust chemistry recommendations. Defaults are suitable for most pools.",
+        "submit": "Continue",
+        "data": {
+          "chem_target_tds_ppm": "Target TDS (ppm)",
+          "chem_target_alkalinity_ppm": "Target alkalinity (ppm)",
+          "chem_cooldown_minutes": "Cooldown after activity/chemical addition (min)",
+          "chem_history_lookback_minutes": "Stable history window (min)",
+          "chem_min_stable_samples": "Minimum stable samples"
+        },
+        "data_description": {
+          "chem_target_tds_ppm": "Target for dilution recommendation when TDS is high",
+          "chem_target_alkalinity_ppm": "Reference target for alkalinity recommendation",
+          "chem_cooldown_minutes": "No alkalinity action while water is likely still reacting/mixing",
+          "chem_history_lookback_minutes": "How far back stable samples are considered",
+          "chem_min_stable_samples": "Required stable samples before actionable recommendations"
         }
       },
       "climate": {
@@ -104,6 +134,49 @@
           "heater_aux_power_w": "Aux heater rated power (watts). Used for preheat estimation when aux heating is enabled. Total = base + aux.",
           "cold_tolerance": "Heater starts when water temperature is below target minus this value",
           "hot_tolerance": "Heater stops when water temperature is at or above target plus this value"
+        }
+      },
+      "dynamic_target": {
+        "title": "Dynamic target temperature",
+        "description": "Optional: adjusts the effective target temperature by season and weather.",
+        "submit": "Continue",
+        "data": {
+          "enable_dynamic_target": "Enable dynamic target",
+          "dynamic_target_weather_entity": "Weather entity",
+          "dynamic_target_winter_offset": "Winter offset (°C)",
+          "dynamic_target_spring_offset": "Spring offset (°C)",
+          "dynamic_target_summer_offset": "Summer offset (°C)",
+          "dynamic_target_autumn_offset": "Autumn offset (°C)",
+          "dynamic_target_min_offset": "Minimum offset (°C)",
+          "dynamic_target_max_offset": "Maximum offset (°C)",
+          "dynamic_target_weather_max_offset": "Max weather offset (°C)",
+          "dynamic_target_weather_weight_temp": "Weight: temperature",
+          "dynamic_target_weather_weight_feels_like": "Weight: feels-like",
+          "dynamic_target_weather_weight_wind": "Weight: wind",
+          "dynamic_target_weather_weight_uv": "Weight: UV",
+          "dynamic_target_weather_weight_cloud": "Weight: cloud coverage",
+          "dynamic_target_weather_weight_forecast": "Weight: forecast temperature",
+          "dynamic_target_ema_alpha": "Smoothing alpha",
+          "dynamic_target_max_step_per_hour": "Max offset change per hour (°C/h)"
+        },
+        "data_description": {
+          "enable_dynamic_target": "If disabled, effective target equals base target.",
+          "dynamic_target_weather_entity": "Weather entity used for weather contribution.",
+          "dynamic_target_winter_offset": "Seasonal offset anchor for winter.",
+          "dynamic_target_spring_offset": "Seasonal offset anchor for spring.",
+          "dynamic_target_summer_offset": "Seasonal offset anchor for summer.",
+          "dynamic_target_autumn_offset": "Seasonal offset anchor for autumn.",
+          "dynamic_target_min_offset": "Lower clamp for total dynamic offset.",
+          "dynamic_target_max_offset": "Upper clamp for total dynamic offset.",
+          "dynamic_target_weather_max_offset": "Absolute cap for weather contribution.",
+          "dynamic_target_weather_weight_temp": "Influence of measured outdoor temperature.",
+          "dynamic_target_weather_weight_feels_like": "Influence of feels-like temperature.",
+          "dynamic_target_weather_weight_wind": "Influence of wind speed.",
+          "dynamic_target_weather_weight_uv": "Influence of UV index.",
+          "dynamic_target_weather_weight_cloud": "Influence of cloud coverage.",
+          "dynamic_target_weather_weight_forecast": "Influence of short-term forecast average.",
+          "dynamic_target_ema_alpha": "EMA smoothing factor between 0 and 1.",
+          "dynamic_target_max_step_per_hour": "Rate limiter for offset changes."
         }
       },
       "frost": {
@@ -279,7 +352,10 @@
           "switches": "Switches & power",
           "water_quality": "Water quality",
           "sanitizer": "Sanitizer",
+          "sanitizer_product": "Sanitizer product",
+          "chemistry": "Chemistry estimation",
           "climate": "Temperature control",
+          "dynamic_target": "Dynamic target temperature",
           "frost": "Frost protection",
           "calendars": "Calendars & quiet times",
           "filter": "Filter settings",
@@ -357,6 +433,17 @@
           "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both"
         }
       },
+      "sanitizer_product": {
+        "title": "Sanitizer product",
+        "description": "Select the concrete chlorine product for improved analysis/estimation.",
+        "submit": "Continue",
+        "data": {
+          "sanitizer_product": "Chlorine product"
+        },
+        "data_description": {
+          "sanitizer_product": "Choose the primary chlorine product you use (e.g. dichlor, trichlor, calcium hypochlorite, liquid chlorine)."
+        }
+      },
       "sanitizer_salt": {
         "title": "Salt target",
         "description": "Set the target salt level for saltwater (or mixed) operation.",
@@ -366,6 +453,25 @@
         },
         "data_description": {
           "target_salt_g_l": "Used to compute recommendations when salt is too low"
+        }
+      },
+      "chemistry": {
+        "title": "Chemistry estimation",
+        "description": "Simple tuning for robust chemistry recommendations. Defaults are suitable for most pools.",
+        "submit": "Continue",
+        "data": {
+          "chem_target_tds_ppm": "Target TDS (ppm)",
+          "chem_target_alkalinity_ppm": "Target alkalinity (ppm)",
+          "chem_cooldown_minutes": "Cooldown after activity/chemical addition (min)",
+          "chem_history_lookback_minutes": "Stable history window (min)",
+          "chem_min_stable_samples": "Minimum stable samples"
+        },
+        "data_description": {
+          "chem_target_tds_ppm": "Target for dilution recommendation when TDS is high",
+          "chem_target_alkalinity_ppm": "Reference target for alkalinity recommendation",
+          "chem_cooldown_minutes": "No alkalinity action while water is likely still reacting/mixing",
+          "chem_history_lookback_minutes": "How far back stable samples are considered",
+          "chem_min_stable_samples": "Required stable samples before actionable recommendations"
         }
       },
       "climate": {
@@ -393,6 +499,49 @@
           "heater_aux_power_w": "Aux heater rated power (watts). Used for preheat estimation when aux heating is enabled. Total = base + aux.",
           "cold_tolerance": "Heater starts when water temperature is below target minus this value",
           "hot_tolerance": "Heater stops when water temperature is at or above target plus this value"
+        }
+      },
+      "dynamic_target": {
+        "title": "Dynamic target temperature",
+        "description": "Optional: adjusts the effective target temperature by season and weather.",
+        "submit": "Continue",
+        "data": {
+          "enable_dynamic_target": "Enable dynamic target",
+          "dynamic_target_weather_entity": "Weather entity",
+          "dynamic_target_winter_offset": "Winter offset (°C)",
+          "dynamic_target_spring_offset": "Spring offset (°C)",
+          "dynamic_target_summer_offset": "Summer offset (°C)",
+          "dynamic_target_autumn_offset": "Autumn offset (°C)",
+          "dynamic_target_min_offset": "Minimum offset (°C)",
+          "dynamic_target_max_offset": "Maximum offset (°C)",
+          "dynamic_target_weather_max_offset": "Max weather offset (°C)",
+          "dynamic_target_weather_weight_temp": "Weight: temperature",
+          "dynamic_target_weather_weight_feels_like": "Weight: feels-like",
+          "dynamic_target_weather_weight_wind": "Weight: wind",
+          "dynamic_target_weather_weight_uv": "Weight: UV",
+          "dynamic_target_weather_weight_cloud": "Weight: cloud coverage",
+          "dynamic_target_weather_weight_forecast": "Weight: forecast temperature",
+          "dynamic_target_ema_alpha": "Smoothing alpha",
+          "dynamic_target_max_step_per_hour": "Max offset change per hour (°C/h)"
+        },
+        "data_description": {
+          "enable_dynamic_target": "If disabled, effective target equals base target.",
+          "dynamic_target_weather_entity": "Weather entity used for weather contribution.",
+          "dynamic_target_winter_offset": "Seasonal offset anchor for winter.",
+          "dynamic_target_spring_offset": "Seasonal offset anchor for spring.",
+          "dynamic_target_summer_offset": "Seasonal offset anchor for summer.",
+          "dynamic_target_autumn_offset": "Seasonal offset anchor for autumn.",
+          "dynamic_target_min_offset": "Lower clamp for total dynamic offset.",
+          "dynamic_target_max_offset": "Upper clamp for total dynamic offset.",
+          "dynamic_target_weather_max_offset": "Absolute cap for weather contribution.",
+          "dynamic_target_weather_weight_temp": "Influence of measured outdoor temperature.",
+          "dynamic_target_weather_weight_feels_like": "Influence of feels-like temperature.",
+          "dynamic_target_weather_weight_wind": "Influence of wind speed.",
+          "dynamic_target_weather_weight_uv": "Influence of UV index.",
+          "dynamic_target_weather_weight_cloud": "Influence of cloud coverage.",
+          "dynamic_target_weather_weight_forecast": "Influence of short-term forecast average.",
+          "dynamic_target_ema_alpha": "EMA smoothing factor between 0 and 1.",
+          "dynamic_target_max_step_per_hour": "Rate limiter for offset changes."
         }
       },
       "frost": {
@@ -560,112 +709,363 @@
   },
   "entity": {
     "switch": {
-      "main": { "name": "Power" },
-      "pump": { "name": "Pump" },
-      "aux_allowed": { "name": "Allow auxiliary heating" },
-      "aux": { "name": "Auxiliary heater" }
+      "main": {
+        "name": "Power"
+      },
+      "pump": {
+        "name": "Pump"
+      },
+      "aux_allowed": {
+        "name": "Allow auxiliary heating"
+      },
+      "aux": {
+        "name": "Auxiliary heater"
+      }
     },
     "binary_sensor": {
-      "maintenance_active": { "name": "Maintenance mode" },
-      "away_active": { "name": "Away mode" },
-      "power_saving_active": { "name": "Power-saving mode active" },
-      "power_saving_available": { "name": "Power-saving mode available" },
-      "is_we_holiday": { "name": "Weekend/Holiday" },
-      "frost_danger": { "name": "Frost danger" },
-      "frost_active": { "name": "Frost protection active" },
-      "aux_present": { "name": "Auxiliary heater configured" },
-      "in_quiet": { "name": "Quiet hours active" },
-      "pv_allows": { "name": "PV surplus allowed" },
-      "battery_first_blocking": { "name": "Battery-first blocking PV" },
-      "should_main_on": { "name": "Power required" },
-      "should_pump_on": { "name": "Pump required" },
-      "low_chlor": { "name": "Low chlorine" },
-      "ph_alert": { "name": "pH out of range" },
-      "tds_high": { "name": "TDS too high" },
-      "event_rain_blocked": { "name": "Event blocked due to rain" },
-      "main_switch_on": { "name": "Main switch on" },
-      "pump_switch_on": { "name": "Pump on" },
-      "aux_heating_switch_on": { "name": "Aux heater on" }
+      "maintenance_active": {
+        "name": "Maintenance mode"
+      },
+      "away_active": {
+        "name": "Away mode"
+      },
+      "power_saving_active": {
+        "name": "Power-saving mode active"
+      },
+      "power_saving_available": {
+        "name": "Power-saving mode available"
+      },
+      "is_we_holiday": {
+        "name": "Weekend/Holiday"
+      },
+      "frost_danger": {
+        "name": "Frost danger"
+      },
+      "frost_active": {
+        "name": "Frost protection active"
+      },
+      "aux_present": {
+        "name": "Auxiliary heater configured"
+      },
+      "in_quiet": {
+        "name": "Quiet hours active"
+      },
+      "pv_allows": {
+        "name": "PV surplus allowed"
+      },
+      "battery_first_blocking": {
+        "name": "Battery-first blocking PV"
+      },
+      "should_main_on": {
+        "name": "Power required"
+      },
+      "should_pump_on": {
+        "name": "Pump required"
+      },
+      "low_chlor": {
+        "name": "Low chlorine"
+      },
+      "ph_alert": {
+        "name": "pH out of range"
+      },
+      "tds_high": {
+        "name": "TDS too high"
+      },
+      "event_rain_blocked": {
+        "name": "Event blocked due to rain"
+      },
+      "main_switch_on": {
+        "name": "Main switch on"
+      },
+      "pump_switch_on": {
+        "name": "Pump on"
+      },
+      "aux_heating_switch_on": {
+        "name": "Aux heater on"
+      }
     },
     "button": {
-      "pause_60": { "name": "Pause 60 min" },
-      "bath_60": { "name": "Bath 60 min" },
-      "filter_30": { "name": "Filter 30 min" },
-      "chlorine_5": { "name": "Quick chlorine 5 min" },
-      "away_start": { "name": "Away mode on" },
-      "away_stop": { "name": "Away mode off" },
-      "power_saving_start": { "name": "Power saving mode on" },
-      "power_saving_stop": { "name": "Power saving mode off" }
+      "pause_60": {
+        "name": "Pause 60 min"
+      },
+      "bath_60": {
+        "name": "Bath 60 min"
+      },
+      "filter_30": {
+        "name": "Filter 30 min"
+      },
+      "chlorine_5": {
+        "name": "Quick chlorine 5 min"
+      },
+      "away_start": {
+        "name": "Away mode on"
+      },
+      "away_stop": {
+        "name": "Away mode off"
+      },
+      "power_saving_start": {
+        "name": "Power saving mode on"
+      },
+      "power_saving_stop": {
+        "name": "Power saving mode off"
+      }
     },
     "sensor": {
-      "status": { "name": "Status" },
-      "run_reason": { "name": "Run reason" },
-      "heat_reason": { "name": "Heating reason" },
-      "run_credit_source": { "name": "Run credit source" },
-      "run_credit_minutes": { "name": "Run credit (min)" },
-      "filter_credit_minutes": { "name": "Filter credit (min)" },
-      "filter_missing_minutes": { "name": "Filter remaining (min)" },
-      "frost_credit_minutes": { "name": "Frost credit (min)" },
-      "frost_credit_shift_minutes": { "name": "Frost shift (min)" },
-      "electricity_price": { "name": "Electricity price (per kWh)" },
-      "feed_in_tariff": { "name": "Feed-in tariff (per kWh)" },
-      "power_cost_per_hour": { "name": "Power cost (per hour)" },
-      "power_cost_per_hour_net": { "name": "Power cost (net per hour)" },
-      "power_cost_feed_in_loss_per_hour": { "name": "Lost feed-in revenue (per hour)" },
-      "energy_cost_daily": { "name": "Energy cost (daily)" },
-      "energy_cost_monthly": { "name": "Energy cost (monthly)" },
-      "energy_cost_yearly": { "name": "Energy cost (yearly)" },
-      "energy_feed_in_loss_daily": { "name": "Lost feed-in revenue (daily)" },
-      "energy_feed_in_loss_monthly": { "name": "Lost feed-in revenue (monthly)" },
-      "energy_feed_in_loss_yearly": { "name": "Lost feed-in revenue (yearly)" },
-      "energy_cost_net_daily": { "name": "Energy cost (net, daily)" },
-      "energy_cost_net_monthly": { "name": "Energy cost (net, monthly)" },
-      "energy_cost_net_yearly": { "name": "Energy cost (net, yearly)" },
-      "heat_loss_w_per_c": { "name": "Heat loss coefficient (W/°C)" },
-      "heat_startup_offset_minutes": { "name": "Heat startup offset (min)" },
-      "sanitizer_mode": { "name": "Sanitizer" },
-      "ph_val": { "name": "pH" },
-      "chlor_val": { "name": "Chlorine (mV)" },
-      "salt_val": { "name": "Salt" },
-      "salt_add_g": { "name": "Add salt" },
-      "tds_val": { "name": "TDS" },
-      "tds_effective": { "name": "TDS (excluding salt)" },
-      "tds_status": { "name": "TDS status" },
-      "tds_water_change_liters": { "name": "Recommended water change (L)" },
-      "tds_water_change_percent": { "name": "Recommended water change (%)" },
-      "ph_minus_g": { "name": "Add pH- (g)" },
-      "ph_plus_g": { "name": "Add pH+ (g)" },
-      "chlor_spoons": { "name": "Chlor dosing (spoons)" },
-      "next_start_mins": { "name": "Next start in" },
-      "next_filter_mins": { "name": "Next filter in" },
-      "next_frost_mins": { "name": "Next frost protection run in" },
-      "next_event": { "name": "Next event" },
-      "next_event_end": { "name": "Next event end" },
-      "next_event_summary": { "name": "Next event summary" },
-      "event_rain_probability": { "name": "Event rain probability" },
-      "manual_timer_mins": { "name": "Manual timer (min)" },
-      "auto_filter_timer_mins": { "name": "Auto filter timer (min)" },
-      "pause_timer_mins": { "name": "Pause timer (min)" },
-      "frost_timer_mins": { "name": "Frost timer (min)" },
-      "outdoor_temp": { "name": "Outdoor temperature" },
-      "pv_power": { "name": "PV power" },
-      "pv_house_load": { "name": "House load (configured sensor)" },
-      "pv_surplus_for_pool": { "name": "PV surplus for pool" },
-      "pv_smoothed": { "name": "PV (smoothed)" },
-      "power_saving_pump_threshold": { "name": "Power-saving pump threshold" },
-      "power_saving_aux_threshold": { "name": "Power-saving aux threshold" },
-      "pv_band_low": { "name": "PV band low" },
-      "pv_band_mid_on": { "name": "PV band mid (on)" },
-      "pv_band_mid_off": { "name": "PV band mid (off)" },
-      "pv_band_high": { "name": "PV band high" },
-      "main_power": { "name": "Main power" },
-      "aux_power": { "name": "Aux power" },
-      "power": { "name": "Pool power (total)" },
-      "pv_on_threshold": { "name": "PV ON threshold" },
-      "pv_off_threshold": { "name": "PV OFF threshold" },
-      "filter_minutes": { "name": "Configured filter duration (min)" },
-      "chlorine_duration": { "name": "Configured chlorine duration (min)" },
-      "bathing_minutes": { "name": "Configured bathing duration (min)" }
+      "status": {
+        "name": "Status"
+      },
+      "run_reason": {
+        "name": "Run reason"
+      },
+      "heat_reason": {
+        "name": "Heating reason"
+      },
+      "run_credit_source": {
+        "name": "Run credit source"
+      },
+      "run_credit_minutes": {
+        "name": "Run credit (min)"
+      },
+      "filter_credit_minutes": {
+        "name": "Filter credit (min)"
+      },
+      "filter_missing_minutes": {
+        "name": "Filter remaining (min)"
+      },
+      "frost_credit_minutes": {
+        "name": "Frost credit (min)"
+      },
+      "frost_credit_shift_minutes": {
+        "name": "Frost shift (min)"
+      },
+      "electricity_price": {
+        "name": "Electricity price (per kWh)"
+      },
+      "feed_in_tariff": {
+        "name": "Feed-in tariff (per kWh)"
+      },
+      "power_cost_per_hour": {
+        "name": "Power cost (per hour)"
+      },
+      "power_cost_per_hour_net": {
+        "name": "Power cost (net per hour)"
+      },
+      "power_cost_feed_in_loss_per_hour": {
+        "name": "Lost feed-in revenue (per hour)"
+      },
+      "energy_cost_daily": {
+        "name": "Energy cost (daily)"
+      },
+      "energy_cost_monthly": {
+        "name": "Energy cost (monthly)"
+      },
+      "energy_cost_yearly": {
+        "name": "Energy cost (yearly)"
+      },
+      "energy_feed_in_loss_daily": {
+        "name": "Lost feed-in revenue (daily)"
+      },
+      "energy_feed_in_loss_monthly": {
+        "name": "Lost feed-in revenue (monthly)"
+      },
+      "energy_feed_in_loss_yearly": {
+        "name": "Lost feed-in revenue (yearly)"
+      },
+      "energy_cost_net_daily": {
+        "name": "Energy cost (net, daily)"
+      },
+      "energy_cost_net_monthly": {
+        "name": "Energy cost (net, monthly)"
+      },
+      "energy_cost_net_yearly": {
+        "name": "Energy cost (net, yearly)"
+      },
+      "heat_loss_w_per_c": {
+        "name": "Heat loss coefficient (W/°C)"
+      },
+      "heat_startup_offset_minutes": {
+        "name": "Heat startup offset (min)"
+      },
+      "sanitizer_mode": {
+        "name": "Sanitizer"
+      },
+      "ph_val": {
+        "name": "pH"
+      },
+      "chlor_val": {
+        "name": "Chlorine (mV)"
+      },
+      "salt_val": {
+        "name": "Salt"
+      },
+      "salt_add_g": {
+        "name": "Add salt"
+      },
+      "tds_val": {
+        "name": "TDS"
+      },
+      "tds_effective": {
+        "name": "TDS (excluding salt)"
+      },
+      "tds_status": {
+        "name": "TDS status"
+      },
+      "alkalinity_estimated_ppm": {
+        "name": "Estimated alkalinity"
+      },
+      "alkalinity_status": {
+        "name": "Alkalinity status"
+      },
+      "alkalinity_action": {
+        "name": "Alkalinity action"
+      },
+      "alkalinity_target_ppm": {
+        "name": "Alkalinity target"
+      },
+      "alkalinity_total_dose_g": {
+        "name": "Alkalinity total dose (g)"
+      },
+      "alkalinity_step_dose_g": {
+        "name": "Alkalinity step dose (g)"
+      },
+      "alkalinity_steps": {
+        "name": "Alkalinity dose steps"
+      },
+      "alkalinity_wait_minutes": {
+        "name": "Wait before re-test (min)"
+      },
+      "alkalinity_water_change_percent": {
+        "name": "Water change before alkalinity correction (%)"
+      },
+      "alkalinity_plus_g": {
+        "name": "Increase alkalinity (g)"
+      },
+      "alkalinity_minus_g": {
+        "name": "Reduce alkalinity (g)"
+      },
+      "tds_water_change_liters": {
+        "name": "Recommended water change (L)"
+      },
+      "tds_water_change_percent": {
+        "name": "Recommended water change (%)"
+      },
+      "ph_minus_g": {
+        "name": "Add pH- (g)"
+      },
+      "ph_plus_g": {
+        "name": "Add pH+ (g)"
+      },
+      "chlor_spoons": {
+        "name": "Chlor dosing (spoons)"
+      },
+      "next_start_mins": {
+        "name": "Next start in"
+      },
+      "next_filter_mins": {
+        "name": "Next filter in"
+      },
+      "next_frost_mins": {
+        "name": "Next frost protection run in"
+      },
+      "next_event": {
+        "name": "Next event"
+      },
+      "next_event_end": {
+        "name": "Next event end"
+      },
+      "next_event_summary": {
+        "name": "Next event summary"
+      },
+      "event_rain_probability": {
+        "name": "Event rain probability"
+      },
+      "manual_timer_mins": {
+        "name": "Manual timer (min)"
+      },
+      "auto_filter_timer_mins": {
+        "name": "Auto filter timer (min)"
+      },
+      "pause_timer_mins": {
+        "name": "Pause timer (min)"
+      },
+      "frost_timer_mins": {
+        "name": "Frost timer (min)"
+      },
+      "outdoor_temp": {
+        "name": "Outdoor temperature"
+      },
+      "pv_power": {
+        "name": "PV power"
+      },
+      "pv_house_load": {
+        "name": "House load (configured sensor)"
+      },
+      "pv_surplus_for_pool": {
+        "name": "PV surplus for pool"
+      },
+      "pv_smoothed": {
+        "name": "PV (smoothed)"
+      },
+      "power_saving_pump_threshold": {
+        "name": "Power-saving pump threshold"
+      },
+      "power_saving_aux_threshold": {
+        "name": "Power-saving aux threshold"
+      },
+      "pv_band_low": {
+        "name": "PV band low"
+      },
+      "pv_band_mid_on": {
+        "name": "PV band mid (on)"
+      },
+      "pv_band_mid_off": {
+        "name": "PV band mid (off)"
+      },
+      "pv_band_high": {
+        "name": "PV band high"
+      },
+      "main_power": {
+        "name": "Main power"
+      },
+      "aux_power": {
+        "name": "Aux power"
+      },
+      "power": {
+        "name": "Pool power (total)"
+      },
+      "pv_on_threshold": {
+        "name": "PV ON threshold"
+      },
+      "pv_off_threshold": {
+        "name": "PV OFF threshold"
+      },
+      "filter_minutes": {
+        "name": "Configured filter duration (min)"
+      },
+      "chlorine_duration": {
+        "name": "Configured chlorine duration (min)"
+      },
+      "bathing_minutes": {
+        "name": "Configured bathing duration (min)"
+      },
+      "target_temp_base": {
+        "name": "Target temperature (base)"
+      },
+      "target_temp_effective": {
+        "name": "Target temperature (effective)"
+      },
+      "target_temp_offset": {
+        "name": "Target offset"
+      },
+      "target_temp_season_offset": {
+        "name": "Season offset"
+      },
+      "target_temp_weather_offset": {
+        "name": "Weather offset"
+      },
+      "dynamic_target_profile": {
+        "name": "Dynamic target profile"
+      }
     }
   },
   "state": {
@@ -690,7 +1090,9 @@
           "pv": "PV",
           "frost": "Frost protection",
           "pause": "Pause",
-          "maintenance": "Maintenance"
+          "maintenance": "Maintenance",
+          "manual": "Manual",
+          "boost": "Boost"
         }
       },
       "heat_reason": {
@@ -700,7 +1102,8 @@
           "bathing": "Bathing",
           "preheat": "Preheating",
           "power_saving": "Power saving",
-          "pv": "PV"
+          "pv": "PV",
+          "boost": "Boost"
         }
       },
       "sanitizer_mode": {
@@ -708,6 +1111,34 @@
           "chlorine": "Chlorine",
           "saltwater": "Saltwater",
           "mixed": "Mixed"
+        }
+      },
+      "alkalinity_status": {
+        "state": {
+          "unknown": "Unknown",
+          "very_low": "Very low",
+          "low": "Low",
+          "optimal": "Optimal",
+          "high": "High",
+          "critical_high": "Critical high"
+        }
+      },
+      "alkalinity_action": {
+        "state": {
+          "measure_first": "Calibration running: wait for stable samples",
+          "none": "No action",
+          "raise_bicarbonate": "Raise with bicarbonate (TA+)",
+          "lower_ph_minus": "Lower with pH-",
+          "water_change_then_adjust": "Do water change first, then adjust"
+        }
+      },
+      "dynamic_target_profile": {
+        "state": {
+          "off": "Off",
+          "winter": "Winter",
+          "spring": "Spring",
+          "summer": "Summer",
+          "autumn": "Autumn"
         }
       }
     }

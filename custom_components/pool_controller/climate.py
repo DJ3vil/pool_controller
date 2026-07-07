@@ -55,7 +55,9 @@ class WhirlpoolClimate(CoordinatorEntity, ClimateEntity):
     PRESET_MAINTENANCE = "Wartung"
     PRESET_AWAY = "Abwesend"
     PRESET_POWER_SAVING = "Stromsparen"
-    _attr_preset_modes = [PRESET_AUTO, PRESET_BATHING, PRESET_CHLORINE, PRESET_FILTER, PRESET_AWAY, PRESET_MAINTENANCE]
+    PRESET_BOOST = "Boost"
+    PRESET_MANUAL = "Manuell"
+    _attr_preset_modes = [PRESET_AUTO, PRESET_BATHING, PRESET_CHLORINE, PRESET_FILTER, PRESET_AWAY, PRESET_MAINTENANCE, PRESET_BOOST, PRESET_MANUAL]
 
     def __init__(self, coordinator):
         super().__init__(coordinator)
@@ -110,65 +112,68 @@ class WhirlpoolClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def hvac_mode(self):
-        # hvac_mode zeigt aktives Heizen an:
-        # - OFF bei Wartung
-        # - OFF bei Away
-        # - OFF wenn HVAC deaktiviert
-        # - HEAT bei Frostlauf, manuellem Heizen, PV, Preheat, Thermostat,
-        #   und auch bei Stromsparen-Stufe 1 (Pumpen-Heizbeitrag)
+        # hvac_mode repräsentiert den Betriebszustand der Anlage:
+        # - OFF: Anlage deaktiviert / gesperrt
+        # - HEAT: Anlage aktiv (kann heizen oder idle sein)
         if bool(getattr(self.coordinator, "maintenance_active", False)):
+            return HVACMode.OFF
+        if bool(getattr(self.coordinator, "manual_mode_active", False)):
             return HVACMode.OFF
         if bool(getattr(self.coordinator, "away_active", False)):
             return HVACMode.OFF
         if not bool(getattr(self.coordinator, "hvac_enabled", True)):
             return HVACMode.OFF
+        return HVACMode.HEAT
+
+    @property
+    def hvac_action(self):
+        if self.hvac_mode == HVACMode.OFF:
+            return HVACAction.OFF
 
         data = getattr(self.coordinator, "data", {}) or {}
         try:
             cur = float(self.current_temperature) if self.current_temperature is not None else None
-            tgt = float(self.target_temperature) if self.target_temperature is not None else None
+            tgt_raw = data.get("target_temp_effective", self.target_temperature)
+            tgt = float(tgt_raw) if tgt_raw is not None else None
         except Exception:
             cur, tgt = None, None
+
         heat_reason = str(data.get("heat_reason") or "").lower()
         run_reason = str(data.get("run_reason") or "").lower()
         try:
             power_saving_stage = int(data.get("power_saving_stage") or 0)
         except Exception:
             power_saving_stage = 0
+
         wants_heat = heat_reason not in ("", "off", "disabled")
         temp_below_target = (cur is not None and tgt is not None and cur < tgt)
 
-        # Frostlauf: Wenn frost_timer_active, dann immer HEAT
+        heating_active = False
         if data.get("frost_timer_active"):
-            return HVACMode.HEAT
-
-        # Prefer explicit demand/switch state when available.
-        if bool(data.get("should_aux_on")) or bool(data.get("aux_heating_switch_on")):
-            return HVACMode.HEAT
-        # Power-saving stage 1 (pump-only heating contribution) should be shown as HEAT.
-        # Fallback to run_reason for backward compatibility if stage is not present.
-        if bool(data.get("should_pump_on")) and (
+            heating_active = True
+        elif bool(data.get("should_aux_on")) or bool(data.get("aux_heating_switch_on")):
+            heating_active = True
+        elif bool(data.get("should_pump_on")) and (
             power_saving_stage >= 1 or run_reason == "power_saving"
         ) and (temp_below_target or cur is None or tgt is None):
-            return HVACMode.HEAT
-        if wants_heat and temp_below_target and bool(data.get("should_pump_on")):
-            return HVACMode.HEAT
-        return HVACMode.OFF
+            heating_active = True
+        elif wants_heat and temp_below_target and bool(data.get("should_pump_on")):
+            heating_active = True
 
-    @property
-    def hvac_action(self):
-        if self.hvac_mode == HVACMode.OFF:
-            return HVACAction.OFF
-        return HVACAction.HEATING
+        return HVACAction.HEATING if heating_active else HVACAction.IDLE
 
     @property
     def preset_mode(self):
         if bool(getattr(self.coordinator, "maintenance_active", False)):
             return self.PRESET_MAINTENANCE
+        if bool(getattr(self.coordinator, "manual_mode_active", False)):
+            return self.PRESET_MANUAL
         if bool(getattr(self.coordinator, "away_active", False)):
             return self.PRESET_AWAY
         if bool(getattr(self.coordinator, "power_saving_active", False)):
             return self.PRESET_POWER_SAVING
+        if bool(getattr(self.coordinator, "boost_active", False)):
+            return self.PRESET_BOOST
         if self.coordinator.data.get("manual_timer_active"):
             t = (self.coordinator.manual_timer_type or "").lower()
             if t == "bathing":
@@ -186,12 +191,14 @@ class WhirlpoolClimate(CoordinatorEntity, ClimateEntity):
             self.PRESET_BATHING,
             self.PRESET_CHLORINE,
             self.PRESET_FILTER,
+            self.PRESET_BOOST,
+            self.PRESET_MANUAL,
             self.PRESET_AWAY,
             self.PRESET_MAINTENANCE,
         ]
         data = getattr(self.coordinator, "data", {}) or {}
         if bool(data.get("power_saving_available")):
-            modes.insert(4, self.PRESET_POWER_SAVING)
+            modes.insert(6, self.PRESET_POWER_SAVING)
         return modes
 
     async def async_set_hvac_mode(self, hvac_mode):
@@ -209,27 +216,58 @@ class WhirlpoolClimate(CoordinatorEntity, ClimateEntity):
 
     async def async_set_preset_mode(self, preset_mode: str):
         mode = (preset_mode or "").strip()
+
+        # While Boost is active, manual presets must not take over.
+        if bool(getattr(self.coordinator, "boost_active", False)) and mode in (
+            self.PRESET_BATHING,
+            self.PRESET_CHLORINE,
+            self.PRESET_FILTER,
+        ):
+            _LOGGER.info("Preset '%s' ignored while Boost is active", mode)
+            await self.coordinator.async_request_refresh()
+            return
+
         if mode == self.PRESET_MAINTENANCE:
+            await self.coordinator.set_manual_mode(False)
             await self.coordinator.set_away(False)
+            await self.coordinator.set_boost(False)
             await self.coordinator.set_maintenance(True)
             await self.coordinator.async_request_refresh()
             return
+        if mode == self.PRESET_MANUAL:
+            await self.coordinator.set_manual_mode(True)
+            await self.coordinator.async_request_refresh()
+            return
         if mode == self.PRESET_AWAY:
+            await self.coordinator.set_manual_mode(False)
             await self.coordinator.set_maintenance(False)
+            await self.coordinator.set_boost(False)
             await self.coordinator.set_power_saving(False)
             await self.coordinator.set_away(True)
             await self.coordinator.async_request_refresh()
             return
         if mode == self.PRESET_POWER_SAVING:
+            await self.coordinator.set_manual_mode(False)
             await self.coordinator.set_maintenance(False)
             await self.coordinator.set_away(False)
+            await self.coordinator.set_boost(False)
             await self.coordinator.set_power_saving(True)
             await self.coordinator.async_request_refresh()
             return
+        if mode == self.PRESET_BOOST:
+            await self.coordinator.set_manual_mode(False)
+            await self.coordinator.set_maintenance(False)
+            await self.coordinator.set_away(False)
+            await self.coordinator.set_power_saving(False)
+            await self.coordinator.set_boost(True)
+            await self.coordinator.async_request_refresh()
+            return
 
-        # Any other preset disables Wartung/Away first
+        # Any other preset disables Wartung/Away/Boost first
+        await self.coordinator.set_manual_mode(False)
         await self.coordinator.set_maintenance(False)
         await self.coordinator.set_away(False)
+        await self.coordinator.set_boost(False)
         await self.coordinator.set_power_saving(False)
 
         if mode == self.PRESET_AUTO:

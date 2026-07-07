@@ -1,5 +1,7 @@
 # Advanced Features
 
+**English** | [Deutsch](de/advanced.md)
+
 [← Back to README](../README.md)
 
 ## Filtration Logic
@@ -276,6 +278,26 @@ When connected to solar:
 - Heating only engages if excess PV production > ON threshold
 - Heating stops when excess drops below OFF threshold
 - Maximizes self-consumption of solar energy
+
+## Boost Mode
+
+Boost mode is designed for fast reheating, typically after partial water replacement.
+
+- Activation: via climate preset (`Boost`).
+- Behavior: adds a dedicated heating context (`boost`) so the controller keeps heating demand active.
+- Stop condition: Boost ends automatically as soon as water temperature reaches the current target temperature.
+- Safety/comfort constraints: maintenance/pause constraints still apply, and quiet hours are respected.
+
+## Manual Mode (Read-Only)
+
+Manual mode is a read-only operating mode.
+
+- Activation: via climate preset (`Manuell`).
+- Behavior: the integration still reads all entities and computes status/reasons, but it does not execute automatic actuator toggles.
+- Scope: no automatic ON/OFF switching for main supply, pump, or auxiliary heater while manual mode is active.
+- Visibility: live states (for example physical switch states, temperatures, status sensors) remain visible.
+- Mode transitions: selecting an active control mode (for example Away, Power-Saving, Boost) exits manual mode intentionally.
+- Note: direct manual switching in Home Assistant (outside this integration logic) remains possible.
 
 ## Power-Saving Mode (Stromsparen)
 

@@ -68,6 +68,17 @@
                     "sanitizer_mode": "Cloro = dosificación clásica, Salmuera = clorador salino, Mixto = ambos"
                 }
             },
+            "sanitizer_product": {
+                "title": "Producto desinfectante",
+                "description": "Selecciona el producto concreto de cloro para mejorar el análisis/estimación.",
+                "submit": "Continuar",
+                "data": {
+                    "sanitizer_product": "Producto de cloro"
+                },
+                "data_description": {
+                    "sanitizer_product": "Elige el producto principal que usas (p. ej. dicloro, tricloro, hipoclorito cálcico, cloro líquido)."
+                }
+            },
             "sanitizer_salt": {
                 "title": "Objetivo de sal",
                 "description": "Define el nivel objetivo de sal para el modo salino o mixto.",
@@ -77,6 +88,25 @@
                 },
                 "data_description": {
                     "target_salt_g_l": "Se usa para calcular recomendaciones cuando falta sal"
+                }
+            },
+            "chemistry": {
+                "title": "Estimación química",
+                "description": "Ajustes simples para recomendaciones químicas robustas. Los valores por defecto suelen ser adecuados.",
+                "submit": "Continuar",
+                "data": {
+                    "chem_target_tds_ppm": "TDS objetivo (ppm)",
+                    "chem_target_alkalinity_ppm": "Alcalinidad objetivo (ppm)",
+                    "chem_cooldown_minutes": "Enfriamiento tras actividad/adición química (min)",
+                    "chem_history_lookback_minutes": "Ventana de historial estable (min)",
+                    "chem_min_stable_samples": "Muestras estables mínimas"
+                },
+                "data_description": {
+                    "chem_target_tds_ppm": "Objetivo para recomendación de recambio cuando el TDS es alto",
+                    "chem_target_alkalinity_ppm": "Objetivo de referencia para recomendaciones de alcalinidad",
+                    "chem_cooldown_minutes": "Sin acción de alcalinidad mientras el agua aún se mezcla/reacciona",
+                    "chem_history_lookback_minutes": "Hasta dónde se consideran muestras estables",
+                    "chem_min_stable_samples": "Muestras estables necesarias antes de recomendaciones accionables"
                 }
             },
             "climate": {
@@ -104,6 +134,49 @@
                     "heater_aux_power_w": "Potencia nominal del calentador auxiliar (W) usada para estimar el precalentamiento cuando la calefacción auxiliar está activada. Total = base + auxiliar.",
                     "cold_tolerance": "El calentador arranca cuando la temperatura del agua está por debajo de objetivo menos este valor",
                     "hot_tolerance": "El calentador se detiene cuando la temperatura del agua es igual o superior a objetivo más este valor"
+                }
+            },
+            "dynamic_target": {
+                "title": "Temperatura objetivo dinámica",
+                "description": "Opcional: ajusta la temperatura objetivo efectiva según la estación y el tiempo.",
+                "submit": "Continuar",
+                "data": {
+                    "enable_dynamic_target": "Activar objetivo dinámico",
+                    "dynamic_target_weather_entity": "Entidad meteorológica",
+                    "dynamic_target_winter_offset": "Desplazamiento de invierno (°C)",
+                    "dynamic_target_spring_offset": "Desplazamiento de primavera (°C)",
+                    "dynamic_target_summer_offset": "Desplazamiento de verano (°C)",
+                    "dynamic_target_autumn_offset": "Desplazamiento de otoño (°C)",
+                    "dynamic_target_min_offset": "Desplazamiento mínimo (°C)",
+                    "dynamic_target_max_offset": "Desplazamiento máximo (°C)",
+                    "dynamic_target_weather_max_offset": "Máx. desplazamiento por clima (°C)",
+                    "dynamic_target_weather_weight_temp": "Peso: temperatura",
+                    "dynamic_target_weather_weight_feels_like": "Peso: sensación térmica",
+                    "dynamic_target_weather_weight_wind": "Peso: viento",
+                    "dynamic_target_weather_weight_uv": "Peso: UV",
+                    "dynamic_target_weather_weight_cloud": "Peso: nubosidad",
+                    "dynamic_target_weather_weight_forecast": "Peso: temperatura de pronóstico",
+                    "dynamic_target_ema_alpha": "Suavizado (alpha)",
+                    "dynamic_target_max_step_per_hour": "Máx. cambio de desplazamiento por hora (°C/h)"
+                },
+                "data_description": {
+                    "enable_dynamic_target": "Si está desactivado, el objetivo efectivo es igual al objetivo base.",
+                    "dynamic_target_weather_entity": "Entidad meteorológica usada para la contribución climática.",
+                    "dynamic_target_winter_offset": "Ancla estacional del desplazamiento para invierno.",
+                    "dynamic_target_spring_offset": "Ancla estacional del desplazamiento para primavera.",
+                    "dynamic_target_summer_offset": "Ancla estacional del desplazamiento para verano.",
+                    "dynamic_target_autumn_offset": "Ancla estacional del desplazamiento para otoño.",
+                    "dynamic_target_min_offset": "Límite inferior del desplazamiento dinámico total.",
+                    "dynamic_target_max_offset": "Límite superior del desplazamiento dinámico total.",
+                    "dynamic_target_weather_max_offset": "Límite absoluto de la contribución climática.",
+                    "dynamic_target_weather_weight_temp": "Influencia de la temperatura exterior medida.",
+                    "dynamic_target_weather_weight_feels_like": "Influencia de la sensación térmica.",
+                    "dynamic_target_weather_weight_wind": "Influencia de la velocidad del viento.",
+                    "dynamic_target_weather_weight_uv": "Influencia del índice UV.",
+                    "dynamic_target_weather_weight_cloud": "Influencia de la nubosidad.",
+                    "dynamic_target_weather_weight_forecast": "Influencia del promedio de pronóstico a corto plazo.",
+                    "dynamic_target_ema_alpha": "Factor de suavizado EMA entre 0 y 1.",
+                    "dynamic_target_max_step_per_hour": "Limitador de velocidad para cambios de desplazamiento."
                 }
             },
             "frost": {
@@ -168,23 +241,23 @@
                     "enable_auto_filter": "Activar ciclos automáticos de filtrado",
                     "filter_interval_minutes": "Intervalo de filtrado (minutos)",
                     "filter_minutes": "Duración del filtrado (minutos)",
+                    "power_saving_filter_deadline_hour": "Hora límite de filtrado en ahorro energético (0-23)",
                     "merge_window_minutes": "Ventana de combinación (minutos)",
                     "min_gap_minutes": "Separación mínima entre ciclos (minutos)",
                     "max_merge_run_minutes": "Máximo ciclo combinado (minutos)",
                     "min_credit_minutes": "Crédito mínimo (minutos)",
-                    "credit_sources": "Fuentes de crédito",
-                    "power_saving_filter_deadline_hour": "Hora límite de filtrado en ahorro energético (0-23)"
+                    "credit_sources": "Fuentes de crédito"
                 },
                 "data_description": {
                     "enable_auto_filter": "Inicia automáticamente los ciclos de filtrado según el intervalo",
                     "filter_interval_minutes": "Tiempo entre ciclos automáticos de filtrado (60..10080 min)",
                     "filter_minutes": "Duración por defecto de un ciclo de filtrado (minutos). Rango: 5–120.",
+                    "power_saving_filter_deadline_hour": "Hora del día (0-23) a la que se fuerza un ciclo de filtrado aplazado en modo ahorro energético si la FV sigue siendo insuficiente.",
                     "merge_window_minutes": "Si una ejecución de antiheladas cae dentro de esta ventana de un ciclo de filtrado, se combinan en un solo bloque.",
                     "min_gap_minutes": "Tiempo mínimo de descanso entre dos ciclos (excepto heladas severas).",
                     "max_merge_run_minutes": "Límite superior para un ciclo combinado.",
                     "min_credit_minutes": "Los ciclos más cortos que este valor no cuentan como crédito.",
-                    "credit_sources": "Qué motivos de funcionamiento generan crédito para reducir o desplazar ciclos futuros.",
-                    "power_saving_filter_deadline_hour": "Hora del día (0-23) a la que se fuerza un ciclo de filtrado aplazado en modo ahorro energético si la FV sigue siendo insuficiente."
+                    "credit_sources": "Qué motivos de funcionamiento generan crédito para reducir o desplazar ciclos futuros."
                 }
             },
             "durations": {
@@ -279,7 +352,10 @@
                     "switches": "Interruptores y potencia",
                     "water_quality": "Calidad del agua",
                     "sanitizer": "Desinfección",
+                    "sanitizer_product": "Producto desinfectante",
+                    "chemistry": "Estimación química",
                     "climate": "Control de temperatura",
+                    "dynamic_target": "Temperatura objetivo dinámica",
                     "frost": "Protección contra heladas",
                     "calendars": "Calendarios y horas de silencio",
                     "filter": "Filtrado",
@@ -357,6 +433,17 @@
                     "sanitizer_mode": "Cloro = dosificación clásica, Agua salada = clorador salino, Mixto = ambos"
                 }
             },
+            "sanitizer_product": {
+                "title": "Producto desinfectante",
+                "description": "Selecciona el producto concreto de cloro para mejorar el análisis/estimación.",
+                "submit": "Siguiente",
+                "data": {
+                    "sanitizer_product": "Producto de cloro"
+                },
+                "data_description": {
+                    "sanitizer_product": "Elige el producto principal que usas (p. ej. dicloro, tricloro, hipoclorito cálcico, cloro líquido)."
+                }
+            },
             "sanitizer_salt": {
                 "title": "Objetivo de sal",
                 "description": "Establece el nivel objetivo de sal (g/L) para agua salada o modo mixto.",
@@ -366,6 +453,25 @@
                 },
                 "data_description": {
                     "target_salt_g_l": "Se usa para calcular recomendaciones cuando falta sal"
+                }
+            },
+            "chemistry": {
+                "title": "Estimación química",
+                "description": "Ajustes simples para recomendaciones químicas robustas. Los valores por defecto suelen ser adecuados.",
+                "submit": "Siguiente",
+                "data": {
+                    "chem_target_tds_ppm": "TDS objetivo (ppm)",
+                    "chem_target_alkalinity_ppm": "Alcalinidad objetivo (ppm)",
+                    "chem_cooldown_minutes": "Enfriamiento tras actividad/adición química (min)",
+                    "chem_history_lookback_minutes": "Ventana de historial estable (min)",
+                    "chem_min_stable_samples": "Muestras estables mínimas"
+                },
+                "data_description": {
+                    "chem_target_tds_ppm": "Objetivo para recomendación de recambio cuando el TDS es alto",
+                    "chem_target_alkalinity_ppm": "Objetivo de referencia para recomendaciones de alcalinidad",
+                    "chem_cooldown_minutes": "Sin acción de alcalinidad mientras el agua aún se mezcla/reacciona",
+                    "chem_history_lookback_minutes": "Hasta dónde se consideran muestras estables",
+                    "chem_min_stable_samples": "Muestras estables necesarias antes de recomendaciones accionables"
                 }
             },
             "climate": {
@@ -393,6 +499,49 @@
                     "heater_aux_power_w": "Potencia nominal del calentador auxiliar (W) usada para estimar el precalentamiento cuando la calefacción auxiliar está activada. Total = base + auxiliar.",
                     "cold_tolerance": "El calentador arranca cuando la temperatura del agua está por debajo de objetivo menos este valor",
                     "hot_tolerance": "El calentador se detiene cuando la temperatura del agua es igual o superior a objetivo más este valor"
+                }
+            },
+            "dynamic_target": {
+                "title": "Temperatura objetivo dinámica",
+                "description": "Opcional: ajusta la temperatura objetivo efectiva según la estación y el tiempo.",
+                "submit": "Continuar",
+                "data": {
+                    "enable_dynamic_target": "Activar objetivo dinámico",
+                    "dynamic_target_weather_entity": "Entidad meteorológica",
+                    "dynamic_target_winter_offset": "Desplazamiento de invierno (°C)",
+                    "dynamic_target_spring_offset": "Desplazamiento de primavera (°C)",
+                    "dynamic_target_summer_offset": "Desplazamiento de verano (°C)",
+                    "dynamic_target_autumn_offset": "Desplazamiento de otoño (°C)",
+                    "dynamic_target_min_offset": "Desplazamiento mínimo (°C)",
+                    "dynamic_target_max_offset": "Desplazamiento máximo (°C)",
+                    "dynamic_target_weather_max_offset": "Máx. desplazamiento por clima (°C)",
+                    "dynamic_target_weather_weight_temp": "Peso: temperatura",
+                    "dynamic_target_weather_weight_feels_like": "Peso: sensación térmica",
+                    "dynamic_target_weather_weight_wind": "Peso: viento",
+                    "dynamic_target_weather_weight_uv": "Peso: UV",
+                    "dynamic_target_weather_weight_cloud": "Peso: nubosidad",
+                    "dynamic_target_weather_weight_forecast": "Peso: temperatura de pronóstico",
+                    "dynamic_target_ema_alpha": "Suavizado (alpha)",
+                    "dynamic_target_max_step_per_hour": "Máx. cambio de desplazamiento por hora (°C/h)"
+                },
+                "data_description": {
+                    "enable_dynamic_target": "Si está desactivado, el objetivo efectivo es igual al objetivo base.",
+                    "dynamic_target_weather_entity": "Entidad meteorológica usada para la contribución climática.",
+                    "dynamic_target_winter_offset": "Ancla estacional del desplazamiento para invierno.",
+                    "dynamic_target_spring_offset": "Ancla estacional del desplazamiento para primavera.",
+                    "dynamic_target_summer_offset": "Ancla estacional del desplazamiento para verano.",
+                    "dynamic_target_autumn_offset": "Ancla estacional del desplazamiento para otoño.",
+                    "dynamic_target_min_offset": "Límite inferior del desplazamiento dinámico total.",
+                    "dynamic_target_max_offset": "Límite superior del desplazamiento dinámico total.",
+                    "dynamic_target_weather_max_offset": "Límite absoluto de la contribución climática.",
+                    "dynamic_target_weather_weight_temp": "Influencia de la temperatura exterior medida.",
+                    "dynamic_target_weather_weight_feels_like": "Influencia de la sensación térmica.",
+                    "dynamic_target_weather_weight_wind": "Influencia de la velocidad del viento.",
+                    "dynamic_target_weather_weight_uv": "Influencia del índice UV.",
+                    "dynamic_target_weather_weight_cloud": "Influencia de la nubosidad.",
+                    "dynamic_target_weather_weight_forecast": "Influencia del promedio de pronóstico a corto plazo.",
+                    "dynamic_target_ema_alpha": "Factor de suavizado EMA entre 0 y 1.",
+                    "dynamic_target_max_step_per_hour": "Limitador de velocidad para cambios de desplazamiento."
                 }
             },
             "frost": {
@@ -457,23 +606,23 @@
                     "enable_auto_filter": "Ciclos de filtrado automáticos",
                     "filter_interval_minutes": "Intervalo de filtrado (minutos)",
                     "filter_minutes": "Duración del filtrado (minutos)",
+                    "power_saving_filter_deadline_hour": "Hora límite de filtrado en ahorro energético (0-23)",
                     "merge_window_minutes": "Ventana de combinación (minutos)",
                     "min_gap_minutes": "Separación mínima entre ciclos (minutos)",
                     "max_merge_run_minutes": "Máximo ciclo combinado (minutos)",
                     "min_credit_minutes": "Crédito mínimo (minutos)",
-                    "credit_sources": "Fuentes de crédito",
-                    "power_saving_filter_deadline_hour": "Hora límite de filtrado en ahorro energético (0-23)"
+                    "credit_sources": "Fuentes de crédito"
                 },
                 "data_description": {
                     "enable_auto_filter": "Inicia ciclos de filtración automáticamente según el intervalo",
                     "filter_interval_minutes": "Tiempo entre ciclos automáticos (60..10080 min)",
                     "filter_minutes": "Duración predeterminada de un ciclo de filtrado (minutos). Rango: 5–120.",
+                    "power_saving_filter_deadline_hour": "Hora del día (0-23) a la que se fuerza un ciclo de filtrado aplazado en modo ahorro energético si la FV sigue siendo insuficiente.",
                     "merge_window_minutes": "Si una ejecución de antiheladas cae dentro de esta ventana, se combinan en un solo bloque.",
                     "min_gap_minutes": "Tiempo mínimo de descanso entre ciclos (excepto heladas severas).",
                     "max_merge_run_minutes": "Límite superior para un ciclo combinado.",
                     "min_credit_minutes": "Ciclos más cortos que este valor no generan crédito.",
-                    "credit_sources": "Qué motivos de funcionamiento generan crédito para reducir/posponer ciclos.",
-                    "power_saving_filter_deadline_hour": "Hora del día (0-23) a la que se fuerza un ciclo de filtrado aplazado en modo ahorro energético si la FV sigue siendo insuficiente."
+                    "credit_sources": "Qué motivos de funcionamiento generan crédito para reducir/posponer ciclos."
                 }
             },
             "durations": {
@@ -761,6 +910,39 @@
             "tds_status": {
                 "name": "Estado TDS"
             },
+            "alkalinity_estimated_ppm": {
+                "name": "Alcalinidad estimada"
+            },
+            "alkalinity_status": {
+                "name": "Estado de alcalinidad"
+            },
+            "alkalinity_action": {
+                "name": "Acción de alcalinidad"
+            },
+            "alkalinity_target_ppm": {
+                "name": "Objetivo de alcalinidad"
+            },
+            "alkalinity_total_dose_g": {
+                "name": "Dosis total de alcalinidad (g)"
+            },
+            "alkalinity_step_dose_g": {
+                "name": "Dosis por paso de alcalinidad (g)"
+            },
+            "alkalinity_steps": {
+                "name": "Pasos de dosificación de alcalinidad"
+            },
+            "alkalinity_wait_minutes": {
+                "name": "Espera antes de volver a medir (min)"
+            },
+            "alkalinity_water_change_percent": {
+                "name": "Cambio de agua antes de corregir alcalinidad (%)"
+            },
+            "alkalinity_plus_g": {
+                "name": "Subir alcalinidad (g)"
+            },
+            "alkalinity_minus_g": {
+                "name": "Bajar alcalinidad (g)"
+            },
             "tds_water_change_liters": {
                 "name": "Cambio de agua recomendado (L)"
             },
@@ -865,6 +1047,24 @@
             },
             "bathing_minutes": {
                 "name": "Duración de baño configurada (min)"
+            },
+            "target_temp_base": {
+                "name": "Target temperature (base)"
+            },
+            "target_temp_effective": {
+                "name": "Target temperature (effective)"
+            },
+            "target_temp_offset": {
+                "name": "Target offset"
+            },
+            "target_temp_season_offset": {
+                "name": "Desplazamiento estacional"
+            },
+            "target_temp_weather_offset": {
+                "name": "Desplazamiento climático"
+            },
+            "dynamic_target_profile": {
+                "name": "Perfil objetivo dinámico"
             }
         }
     },
@@ -890,7 +1090,9 @@
                     "pv": "FV",
                     "frost": "Protección contra heladas",
                     "pause": "Pausa",
-                    "maintenance": "Mantenimiento"
+                    "maintenance": "Mantenimiento",
+                    "manual": "Manual",
+                    "boost": "Impulso"
                 }
             },
             "heat_reason": {
@@ -900,7 +1102,8 @@
                     "bathing": "Baño",
                     "preheat": "Precalentamiento",
                     "power_saving": "Ahorro energético",
-                    "pv": "FV"
+                    "pv": "FV",
+                    "boost": "Impulso"
                 }
             },
             "sanitizer_mode": {
@@ -908,6 +1111,34 @@
                     "chlorine": "Cloro",
                     "saltwater": "Agua salada",
                     "mixed": "Mixto"
+                }
+            },
+            "alkalinity_status": {
+                "state": {
+                    "unknown": "Desconocido",
+                    "very_low": "Muy bajo",
+                    "low": "Bajo",
+                    "optimal": "Óptimo",
+                    "high": "Alto",
+                    "critical_high": "Críticamente alto"
+                }
+            },
+            "alkalinity_action": {
+                "state": {
+                    "measure_first": "Calibración en curso: esperar muestras estables",
+                    "none": "Sin acción",
+                    "raise_bicarbonate": "Subir con bicarbonato (TA+)",
+                    "lower_ph_minus": "Bajar con pH-",
+                    "water_change_then_adjust": "Primero cambio de agua, luego ajustar"
+                }
+            },
+            "dynamic_target_profile": {
+                "state": {
+                    "off": "Apagado",
+                    "winter": "Invierno",
+                    "spring": "Primavera",
+                    "summer": "Verano",
+                    "autumn": "Otoño"
                 }
             }
         }

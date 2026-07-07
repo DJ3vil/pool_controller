@@ -3,6 +3,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers import entity_registry as er
 from .const import DOMAIN, MANUFACTURER, CONF_MAIN_SWITCH, CONF_PUMP_SWITCH, CONF_AUX_HEATING_SWITCH
 from .const import CONF_DEMO_MODE
+from .const import OPT_KEY_AUX_ALLOWED
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
@@ -21,6 +22,16 @@ class PoolBaseSwitch(CoordinatorEntity, SwitchEntity):
         # do not provide a translation_key/original_name yet.
         if name:
             self._attr_name = name
+
+    def _merged_conf(self):
+        return {**(self.coordinator.entry.data or {}), **(self.coordinator.entry.options or {})}
+
+    def _resolved_switch(self, key: str, fallback_key: str | None = None) -> str | None:
+        conf = self._merged_conf()
+        entity_id = self.coordinator._resolve_external_actuator_entity(conf, key)
+        if not entity_id and fallback_key:
+            entity_id = self.coordinator._resolve_external_actuator_entity(conf, fallback_key)
+        return entity_id
     @property
     def device_info(self):
         return {"identifiers": {(DOMAIN, self.coordinator.entry.entry_id)}, "name": self.coordinator.entry.data.get("name"), "manufacturer": MANUFACTURER}
@@ -38,7 +49,9 @@ class PoolMainSwitch(PoolBaseSwitch):
         demo = self.coordinator.entry.data.get(CONF_DEMO_MODE, False)
         if demo:
             return
-        await self.hass.services.async_call("switch", "turn_on", {"entity_id": self.coordinator.entry.data.get(CONF_MAIN_SWITCH)})
+        entity_id = self._resolved_switch(CONF_MAIN_SWITCH)
+        if entity_id:
+            await self.hass.services.async_call("switch", "turn_on", {"entity_id": entity_id})
     async def async_turn_off(self, **kwargs):
         demo = self.coordinator.entry.data.get(CONF_DEMO_MODE, False)
         # don't turn off main while bathing
@@ -46,7 +59,9 @@ class PoolMainSwitch(PoolBaseSwitch):
             return
         if demo:
             return
-        await self.hass.services.async_call("switch", "turn_off", {"entity_id": self.coordinator.entry.data.get(CONF_MAIN_SWITCH)})
+        entity_id = self._resolved_switch(CONF_MAIN_SWITCH)
+        if entity_id:
+            await self.hass.services.async_call("switch", "turn_off", {"entity_id": entity_id})
 
 
 class PoolPumpSwitch(PoolBaseSwitch):
@@ -57,15 +72,15 @@ class PoolPumpSwitch(PoolBaseSwitch):
         self._attr_unique_id = f"{coordinator.entry.entry_id}_pump"
 
     def _pump_target(self):
-        # Merge data + options so option overrides win.
-        cfg = {**self.coordinator.entry.data, **self.coordinator.entry.options}
-        pump = cfg.get(CONF_PUMP_SWITCH)
-        main = cfg.get(CONF_MAIN_SWITCH)
-        # Fall back to main switch if pump_switch is unset or refers to a
-        # non-existing entity (e.g. legacy hardcoded default "switch.whirlpool").
+        # Build on upstream's _resolved_switch (handles the own-proxy-switch
+        # guard and unset-pump fallback), then layer an existence check on top:
+        # if the resolved pump entity does not exist (e.g. a legacy ghost like
+        # "switch.whirlpool" that slipped past migration), fall back to the main
+        # switch so manual toggles still act on a real entity.
+        pump = self._resolved_switch(CONF_PUMP_SWITCH)
         if pump and self.hass.states.get(pump) is not None:
             return pump
-        return main
+        return self._resolved_switch(CONF_MAIN_SWITCH)
 
     @property
     def is_on(self):
@@ -100,7 +115,7 @@ class PoolAuxSwitch(PoolBaseSwitch):
 
     @property
     def is_on(self):
-        aux_switch_id = self.coordinator.entry.data.get(CONF_AUX_HEATING_SWITCH)
+        aux_switch_id = self._resolved_switch(CONF_AUX_HEATING_SWITCH)
         if not aux_switch_id:
             return False
         st = self.coordinator.hass.states.get(aux_switch_id)
@@ -110,7 +125,7 @@ class PoolAuxSwitch(PoolBaseSwitch):
         demo = self.coordinator.entry.data.get(CONF_DEMO_MODE, False)
         if demo:
             return
-        aux_switch_id = self.coordinator.entry.data.get(CONF_AUX_HEATING_SWITCH)
+        aux_switch_id = self._resolved_switch(CONF_AUX_HEATING_SWITCH)
         if aux_switch_id:
             await self.hass.services.async_call("switch", "turn_on", {"entity_id": aux_switch_id})
 
@@ -118,7 +133,7 @@ class PoolAuxSwitch(PoolBaseSwitch):
         demo = self.coordinator.entry.data.get(CONF_DEMO_MODE, False)
         if demo:
             return
-        aux_switch_id = self.coordinator.entry.data.get(CONF_AUX_HEATING_SWITCH)
+        aux_switch_id = self._resolved_switch(CONF_AUX_HEATING_SWITCH)
         if aux_switch_id:
             await self.hass.services.async_call("switch", "turn_off", {"entity_id": aux_switch_id})
 
@@ -131,17 +146,30 @@ class PoolAuxAllowedSwitch(PoolBaseSwitch):
     def is_on(self):
         # Zeigt Master-Enable-Status, nicht den physischen Schalter
         return self.coordinator.aux_allowed
+
+    async def _async_persist_aux_allowed(self, allowed: bool) -> None:
+        try:
+            new_opts = {**(self.coordinator.entry.options or {})}
+            new_opts[OPT_KEY_AUX_ALLOWED] = bool(allowed)
+            await self.coordinator._async_update_entry_options(new_opts)
+        except Exception:
+            # Best effort: runtime state still changes even if persistence fails.
+            pass
+
     async def async_turn_on(self, **kwargs):
         # Aktiviere Master-Enable für Zusatzheizung
         self.coordinator.aux_allowed = True
         self.coordinator.aux_enabled = True
+        await self._async_persist_aux_allowed(True)
         await self.coordinator.async_request_refresh()
+
     async def async_turn_off(self, **kwargs):
         # Deaktiviere Master-Enable und schalte physischen Schalter sofort aus
         self.coordinator.aux_allowed = False
         self.coordinator.aux_enabled = False
+        await self._async_persist_aux_allowed(False)
         demo = self.coordinator.entry.data.get(CONF_DEMO_MODE, False)
-        aux_switch_id = self.coordinator.entry.data.get(CONF_AUX_HEATING_SWITCH)
+        aux_switch_id = self._resolved_switch(CONF_AUX_HEATING_SWITCH)
         if not demo and aux_switch_id:
             await self.hass.services.async_call("switch", "turn_off", {"entity_id": aux_switch_id})
         await self.coordinator.async_request_refresh()

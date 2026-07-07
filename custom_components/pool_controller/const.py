@@ -43,6 +43,25 @@ CONF_TARGET_TEMP_STEP = "target_temp_step"
 CONF_COLD_TOLERANCE = "cold_tolerance"
 CONF_HOT_TOLERANCE = "hot_tolerance"
 
+# Dynamic target temperature (optional)
+CONF_ENABLE_DYNAMIC_TARGET = "enable_dynamic_target"
+CONF_DYNAMIC_TARGET_WEATHER_ENTITY = "dynamic_target_weather_entity"
+CONF_DYNAMIC_TARGET_WINTER_OFFSET = "dynamic_target_winter_offset"
+CONF_DYNAMIC_TARGET_SPRING_OFFSET = "dynamic_target_spring_offset"
+CONF_DYNAMIC_TARGET_SUMMER_OFFSET = "dynamic_target_summer_offset"
+CONF_DYNAMIC_TARGET_AUTUMN_OFFSET = "dynamic_target_autumn_offset"
+CONF_DYNAMIC_TARGET_MIN_OFFSET = "dynamic_target_min_offset"
+CONF_DYNAMIC_TARGET_MAX_OFFSET = "dynamic_target_max_offset"
+CONF_DYNAMIC_TARGET_WEATHER_MAX_OFFSET = "dynamic_target_weather_max_offset"
+CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_TEMP = "dynamic_target_weather_weight_temp"
+CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FEELS_LIKE = "dynamic_target_weather_weight_feels_like"
+CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_WIND = "dynamic_target_weather_weight_wind"
+CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_UV = "dynamic_target_weather_weight_uv"
+CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_CLOUD = "dynamic_target_weather_weight_cloud"
+CONF_DYNAMIC_TARGET_WEATHER_WEIGHT_FORECAST = "dynamic_target_weather_weight_forecast"
+CONF_DYNAMIC_TARGET_EMA_ALPHA = "dynamic_target_ema_alpha"
+CONF_DYNAMIC_TARGET_MAX_STEP_PER_HOUR = "dynamic_target_max_step_per_hour"
+
 # Electricity price (cost estimation)
 CONF_ELECTRICITY_PRICE = "electricity_price"
 CONF_ELECTRICITY_PRICE_ENTITY = "electricity_price_entity"
@@ -80,7 +99,15 @@ CONF_ENABLE_FROST_PROTECTION = "enable_frost_protection"
 # Sanitizer / Desinfektion
 # NOTE: `CONF_ENABLE_SALTWATER` is kept for backward compatibility.
 CONF_SANITIZER_MODE = "sanitizer_mode"  # chlorine | saltwater | mixed
+CONF_SANITIZER_PRODUCT = "sanitizer_product"  # concrete product/chemistry profile
 CONF_TARGET_SALT_G_L = "target_salt_g_l"  # target salt level in g/L (only relevant for saltwater/mixed)
+
+# Chemistry estimation / recommendation tuning
+CONF_CHEM_TARGET_TDS_PPM = "chem_target_tds_ppm"
+CONF_CHEM_TARGET_ALKALINITY_PPM = "chem_target_alkalinity_ppm"
+CONF_CHEM_COOLDOWN_MINUTES = "chem_cooldown_minutes"
+CONF_CHEM_HISTORY_LOOKBACK_MINUTES = "chem_history_lookback_minutes"
+CONF_CHEM_MIN_STABLE_SAMPLES = "chem_min_stable_samples"
 
 # Frost protection (duty-cycle) tuning
 # Below CONF_FROST_START_TEMP the pump may run periodically to prevent freezing.
@@ -199,6 +226,18 @@ OPT_KEY_MAINTENANCE_ACTIVE = "maintenance_active"
 # This is independent from maintenance mode.
 OPT_KEY_HVAC_ENABLED = "hvac_enabled"
 
+# Runtime master-enable for auxiliary heating (toggle switch state).
+# Falls back to CONF_ENABLE_AUX_HEATING when absent.
+OPT_KEY_AUX_ALLOWED = "aux_allowed"
+
+# Manual mode (read-only): integration observes state but does not control actuators.
+OPT_KEY_MANUAL_MODE_ACTIVE = "manual_mode_active"
+
+# Boost mode (rapid heating to target after water change)
+# Heats continuously (within normal constraints), stops automatically at target temperature
+OPT_KEY_BOOST_ACTIVE = "boost_active"
+OPT_KEY_BOOST_UNTIL = "boost_until"
+
 # Alle Standardwerte (Defaults)
 DEFAULT_NAME = "Whirlpool Demo"
 DEFAULT_VOL = 1000
@@ -255,6 +294,24 @@ DEFAULT_MIN_TEMP = 10.0
 DEFAULT_MAX_TEMP = 40.0
 DEFAULT_TARGET_TEMP_STEP = 0.5
 
+# Dynamic target defaults (balanced summer cooling preference)
+DEFAULT_ENABLE_DYNAMIC_TARGET = False
+DEFAULT_DYNAMIC_TARGET_WINTER_OFFSET = 4.0
+DEFAULT_DYNAMIC_TARGET_SPRING_OFFSET = 2.0
+DEFAULT_DYNAMIC_TARGET_SUMMER_OFFSET = -4.5
+DEFAULT_DYNAMIC_TARGET_AUTUMN_OFFSET = 1.0
+DEFAULT_DYNAMIC_TARGET_MIN_OFFSET = -6.5
+DEFAULT_DYNAMIC_TARGET_MAX_OFFSET = 5.0
+DEFAULT_DYNAMIC_TARGET_WEATHER_MAX_OFFSET = 3.0
+DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_TEMP = 0.55
+DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_FEELS_LIKE = 0.30
+DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_WIND = 0.15
+DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_UV = 0.10
+DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_CLOUD = 0.10
+DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_FORECAST = 0.10
+DEFAULT_DYNAMIC_TARGET_EMA_ALPHA = 0.20
+DEFAULT_DYNAMIC_TARGET_MAX_STEP_PER_HOUR = 1.0
+
 # Default heater power used for preheat estimation
 DEFAULT_HEATER_POWER_W = 2750
 
@@ -270,8 +327,16 @@ DEFAULT_HEATER_AUX_POWER_W = DEFAULT_HEATER_POWER_W
 
 # Sanitizer defaults
 DEFAULT_SANITIZER_MODE = "chlorine"
+DEFAULT_SANITIZER_PRODUCT = "dichlor"
 # Typical saltwater chlorinator pools run ~3-5 g/L depending on the system.
 DEFAULT_TARGET_SALT_G_L = 4.0
+
+# Chemistry estimation defaults
+DEFAULT_CHEM_TARGET_TDS_PPM = 1200
+DEFAULT_CHEM_TARGET_ALKALINITY_PPM = 110
+DEFAULT_CHEM_COOLDOWN_MINUTES = 90
+DEFAULT_CHEM_HISTORY_LOOKBACK_MINUTES = 360
+DEFAULT_CHEM_MIN_STABLE_SAMPLES = 4
 
 # Thermostat-like tolerances (hysteresis)
 # Defaults preserve current behavior as close as possible, while allowing proper 'stop at target'.
@@ -305,6 +370,10 @@ OPT_KEY_FROST_CREDIT_MINUTES = "frost_credit_minutes"
 OPT_KEY_FROST_CREDIT_EXPIRES_AT = "frost_credit_expires_at"
 OPT_KEY_CREDIT_STREAK_SOURCE = "credit_streak_source"
 OPT_KEY_CREDIT_STREAK_MINUTES = "credit_streak_minutes"
+
+# Chemistry history (robust recommendations across HA restarts)
+OPT_KEY_CHEMISTRY_HISTORY = "chemistry_history"
+OPT_KEY_CHEM_BLOCK_UNTIL = "chem_block_until"
 
 # Derived energy aggregation (when only daily sensors are provided)
 OPT_KEY_DERIVED_GRID_DAILY_LAST_VALUE = "derived_grid_daily_last_value"

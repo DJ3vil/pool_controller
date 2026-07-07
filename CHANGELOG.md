@@ -2,6 +2,66 @@
 
 All notable changes to this integration are documented in this file.
 
+## [2.8.3] - 2026-06-29
+- Fix for effective targeting defaults and docu
+
+
+## [2.8.2] - 2026-06-25
+- Fix for auto enable of aux_allowed
+
+
+## [2.8.1] - 2026-06-19
+- Release update.
+
+
+## [2.8.1] - 2026-06-19
+- Rate Limit one time ignore when activating dynamic target temp
+
+
+## [2.8.0] - 2026-06-16
+- Stabilisiert Chemie-Empfehlungen mit historienbasierter Median-Logik statt Einzelmessungen
+- Blockiert Alkalinitäts-Aktionen während/kurz nach Baden, Chloren, Boost, Pause und bei Messsprung-Cooldown
+- Persistiert Chemie-Historie und Cooldown über Home-Assistant-Neustarts via entry options
+- Erweitert Config- und Options-Flow um einfache Chemistry-Tuning-Parameter (TDS, Alkalinität, Cooldown, Lookback, Min-Samples)
+- Aktualisiert Entitäten/Service-Dokumentation und ergänzt klare Hinweise: Schätzung ist kein Laborwert
+- Ergänzt/überarbeitet Übersetzungen (de/en/es/fr) für neue Chemistry-Flow-Felder
+
+
+## [2.7.2] - 2026-06-12
+- IDLE State Support
+
+
+## [2.7.1] - 2026-06-10
+- service calls to modify settings
+- new default values for target temp settings
+
+
+## [2.7.0] - 2026-06-10
+- Dynamic Target Temperature via Season and Weather
+
+
+## [2.6.0] - 2026-06-07
+- Stabilisiert Chemie-Empfehlungen mit historienbasierter Median-Logik statt Einzelmessungen
+- Blockiert Alkalinitäts-Aktionen während/kurz nach Baden, Chloren, Boost, Pause und bei Messsprung-Cooldown
+- Persistiert Chemie-Historie und Cooldown über Home-Assistant-Neustarts via entry options
+- Erweitert Config- und Options-Flow um einfache Chemistry-Tuning-Parameter (TDS, Alkalinität, Cooldown, Lookback, Min-Samples)
+- Aktualisiert Entitäten/Service-Dokumentation und ergänzt klare Hinweise: Schätzung ist kein Laborwert
+- Ergänzt/überarbeitet Übersetzungen (de/en/es/fr) für neue Chemistry-Flow-Felder
+
+
+## [2.5.2] - 2026-06-06
+- fix for debouncing off -> on and on -> off
+
+
+## [2.5.1] - 2026-06-06
+- Boost did not activate switches fixed
+
+
+## [2.5.0] - 2026-06-06
+- Bug deaktivating Maintanance fixed
+- Boost Mode added to allow heating without interruption after a total water exchange.
+
+
 ## [2.4.3] - 2026-06-01
 - pause still did not work.
 
