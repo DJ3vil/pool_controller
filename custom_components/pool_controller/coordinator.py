@@ -3035,29 +3035,11 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
 
             # pH-Toleranzbereich: 7.0 - 7.4 (keine Dosierung nötig)
             # Außerhalb: Differenz zu Zielwert 7.2 berechnen
-            #
-            # Fork-Feature: alkalinitäts-abhängige pH-Dosierung.
-            # Der reale Säure-/Basenbedarf hängt von der Gesamt-Alkalinität (TA)
-            # ab – sie ist der Puffer. Die feste Upstream-Formel (100 g je 0.1 pH
-            # je 1000 L) nimmt implizit die Ziel-Alkalinität an. Wenn eine
-            # validierte Alkalinitäts-Schätzung vorliegt, skalieren wir den Faktor
-            # mit (geschätzte_TA / Ziel_TA), begrenzt auf [0.5, 1.5]. Ist die
-            # Schätzung noch nicht kalibriert, bleibt es 1.0 -> identisch zu upstream.
-            _ph_alk_scale = 1.0
-            try:
-                if (alkalinity_measurement_valid
-                        and alkalinity_estimated_ppm is not None
-                        and alkalinity_target_ppm):
-                    _ph_alk_scale = float(alkalinity_estimated_ppm) / float(alkalinity_target_ppm)
-                    _ph_alk_scale = max(0.5, min(1.5, _ph_alk_scale))
-            except Exception:
-                _ph_alk_scale = 1.0
-
             if ph_val and ph_val > 7.4:
-                ph_minus = max(0, round((ph_val - 7.2) * 100 * vol_f * _ph_alk_scale))
+                ph_minus = max(0, round((ph_val - 7.2) * 100 * vol_f))
                 ph_plus = 0
             elif ph_val and ph_val < 7.0:
-                ph_plus = max(0, round((7.2 - ph_val) * 100 * vol_f * _ph_alk_scale))
+                ph_plus = max(0, round((7.2 - ph_val) * 100 * vol_f))
                 ph_minus = 0
             else:
                 ph_minus = 0
