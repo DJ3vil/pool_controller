@@ -93,14 +93,18 @@ def _resolve_credentials(config_path: str | None, url_override: str | None = Non
     default_insecure = str(os.getenv("HA_INSECURE", "")).lower() in {"1", "true", "yes", "on"}
     default_insecure = bool(cfg.get("insecure", default_insecure))
 
+    if use_local_url and not configured_local_url and not url_override:
+        source = f" (checked config: {used_path})" if used_path else ""
+        raise RuntimeError(
+            "--local requires HA_LOCAL_URL or ha_local_url/local_url in the configuration. "
+            "Use the configured ha_url without --local, or pass --url explicitly." + source
+        )
     if not ha_url or not ha_token:
         source = f" (checked config: {used_path})" if used_path else ""
         raise RuntimeError(
             "Missing Home Assistant credentials. Set HA_URL and HA_TOKEN, "
             "or provide --config, or create tools/.ha_api.local.json" + source
         )
-    if use_local_url and not configured_local_url and not url_override:
-        raise RuntimeError("--local was requested but no HA_LOCAL_URL/local_url/ha_local_url is configured")
 
     return ha_url.rstrip("/"), ha_token, used_path, default_insecure
 

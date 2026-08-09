@@ -2,6 +2,14 @@
 
 All notable changes to this integration are documented in this file.
 
+## [2.14.8] - 2026-08-09
+- Release update.
+
+
+## [2.14.7] - 2026-08-09
+- Release update.
+
+
 ## [2.14.4] - 2026-08-09
 - configurable water quality thresholds
 

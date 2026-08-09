@@ -7,12 +7,18 @@
                 "data": {
                     "name": "Nombre de la piscina",
                     "water_volume": "Volumen de agua en litros (para cálculos de dosificación y calentamiento)",
-                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)"
+                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)",
+                    "sanitizer_mode": "Sanitization mode",
+                    "sanitizer_product": "Chlorine product",
+                    "target_salt_g_l": "Target salt (g/L)"
                 },
                 "data_description": {
                     "name": "Nombre visible para esta instalación",
                     "water_volume": "Volumen de agua en litros (usado para dosificación y tiempo de calentamiento)",
-                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)"
+                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)",
+                    "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both",
+                    "sanitizer_product": "The main chlorine product used for dosing. Saltwater automatically uses a salt cell.",
+                    "target_salt_g_l": "Target salt level for saltwater or mixed operation"
                 }
             },
             "switches": {
@@ -51,14 +57,22 @@
                     "ph_sensor": "Sensor de pH",
                     "chlorine_sensor": "Sensor de cloro (redox)",
                     "salt_sensor": "Sensor de sal",
-                    "tds_sensor": "Sensor de conductividad"
+                    "tds_sensor": "Sensor de conductividad",
+                    "water_safety_orp_warning_mv": "ORP warning threshold (mV)",
+                    "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
+                    "water_safety_ph_min": "pH lower warning threshold",
+                    "water_safety_ph_max": "pH upper warning threshold"
                 },
                 "data_description": {
                     "temp_water_sensor": "Optional pool water temperature sensor when direct BlueRiiot reading is not used",
                     "ph_sensor": "pH value sensor (Blueriiot or similar)",
                     "chlorine_sensor": "Redox sensor for chlorine measurement in mV",
                     "salt_sensor": "Salt content sensor for saltwater pools",
-                    "tds_sensor": "Conductivity sensor (TDS) for water quality"
+                    "tds_sensor": "Conductivity sensor (TDS) for water quality",
+                    "water_safety_orp_warning_mv": "Below this value the water safety status becomes a warning (default: 550 mV)",
+                    "water_safety_orp_critical_mv": "Below this value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
+                    "water_safety_ph_min": "Below this value the water safety status becomes a warning (default: 7.0)",
+                    "water_safety_ph_max": "Above this value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
                 }
             },
             "blueriiot": {
@@ -95,6 +109,22 @@
                     "enable_sensor_health": "Muestra un problema cuando la infraestructura de medición configurada no está disponible. Con lectura directa de BlueRiiot se usa el estado interno del lector.",
                     "sensor_health_esp32_device": "Dispositivo opcional que proporciona las mediciones de la piscina. Se considera disponible cuando al menos una entidad de este dispositivo está disponible.",
                     "sensor_health_water_sensor": "Binary sensor opcional que está encendido cuando el sensor de agua (por ejemplo BlueRiiot) está disponible."
+                }
+            },
+            "measurement": {
+                "title": "Measurement infrastructure",
+                "description": "Configure direct BlueRiiot readings and optional reachability monitoring together.",
+                "submit": "Continue",
+                "data": {
+                    "enable_blueriiot": "Read BlueRiiot directly",
+                    "blueriiot_mac": "BlueRiiot Bluetooth address",
+                    "blueriiot_interval_minutes": "Daytime reading interval",
+                    "blueriiot_night_interval_minutes": "Nighttime reading interval",
+                    "blueriiot_night_start": "Nighttime starts",
+                    "blueriiot_night_end": "Nighttime ends",
+                    "enable_sensor_health": "Enable reachability monitoring",
+                    "sensor_health_esp32_device": "ESP32 device",
+                    "sensor_health_water_sensor": "Water sensor reachability"
                 }
             },
             "notifications": {
@@ -156,22 +186,14 @@
                     "chem_target_alkalinity_ppm": "Alcalinidad objetivo (ppm)",
                     "chem_cooldown_minutes": "Enfriamiento tras actividad/adición química (min)",
                     "chem_history_lookback_minutes": "Ventana de historial estable (min)",
-                    "chem_min_stable_samples": "Muestras estables mínimas",
-                    "water_safety_orp_warning_mv": "Umbral de advertencia ORP (mV)",
-                    "water_safety_orp_critical_mv": "Umbral crítico ORP (mV)",
-                    "water_safety_ph_min": "Umbral inferior de advertencia de pH",
-                    "water_safety_ph_max": "Umbral superior de advertencia de pH"
+                    "chem_min_stable_samples": "Muestras estables mínimas"
                 },
                 "data_description": {
                     "chem_target_tds_ppm": "Objetivo para recomendación de recambio cuando el TDS es alto",
                     "chem_target_alkalinity_ppm": "Objetivo de referencia para recomendaciones de alcalinidad",
                     "chem_cooldown_minutes": "Sin acción de alcalinidad mientras el agua aún se mezcla/reacciona",
                     "chem_history_lookback_minutes": "Hasta dónde se consideran muestras estables",
-                    "chem_min_stable_samples": "Muestras estables necesarias antes de recomendaciones accionables",
-                    "water_safety_orp_warning_mv": "Por debajo de este ORP el estado del agua pasa a advertencia (predeterminado: 550 mV)",
-                    "water_safety_orp_critical_mv": "Por debajo de este ORP el estado del agua pasa a crítico (predeterminado: 400 mV); debe estar por debajo del umbral de advertencia",
-                    "water_safety_ph_min": "Por debajo de este pH el estado del agua pasa a advertencia (predeterminado: 7,0)",
-                    "water_safety_ph_max": "Por encima de este pH el estado del agua pasa a advertencia; con ORP bajo es crítico (predeterminado: 7,8)"
+                    "chem_min_stable_samples": "Muestras estables necesarias antes de recomendaciones accionables"
                 }
             },
             "climate": {
@@ -405,11 +427,9 @@
                 "menu_options": {
                     "basic": "Básico",
                     "switches": "Interruptores y potencia",
+                    "measurement": "Measurement infrastructure",
                     "water_quality": "Calidad del agua",
-                    "blueriiot": "Lector Bluetooth BlueRiiot",
-                    "sensor_health": "Disponibilidad de sensores",
                     "notifications": "Notificaciones de mantenimiento",
-                    "sanitizer": "Desinfección",
                     "chemistry": "Estimación química",
                     "climate": "Control de temperatura",
                     "dynamic_target": "Temperatura objetivo dinámica",
@@ -429,12 +449,18 @@
                 "data": {
                     "name": "Nombre de la piscina",
                     "water_volume": "Volumen de agua (litros)",
-                    "demo_mode": "Modo demo"
+                    "demo_mode": "Modo demo",
+                    "sanitizer_mode": "Sanitization mode",
+                    "sanitizer_product": "Chlorine product",
+                    "target_salt_g_l": "Target salt (g/L)"
                 },
                 "data_description": {
                     "name": "Nombre mostrado para esta instalación",
                     "water_volume": "Volumen de agua en litros (para cálculos de dosificación y calentamiento)",
-                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)"
+                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)",
+                    "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both",
+                    "sanitizer_product": "The main chlorine product used for dosing. Saltwater automatically uses a salt cell.",
+                    "target_salt_g_l": "Target salt level for saltwater or mixed operation"
                 }
             },
             "switches": {
@@ -473,14 +499,22 @@
                     "ph_sensor": "Sensor de pH",
                     "chlorine_sensor": "Sensor de cloro (redox)",
                     "salt_sensor": "Sensor de sal",
-                    "tds_sensor": "Sensor de TDS"
+                    "tds_sensor": "Sensor de TDS",
+                    "water_safety_orp_warning_mv": "ORP warning threshold (mV)",
+                    "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
+                    "water_safety_ph_min": "pH lower warning threshold",
+                    "water_safety_ph_max": "pH upper warning threshold"
                 },
                 "data_description": {
                     "temp_water_sensor": "Sensor opcional de temperatura del agua cuando no se usa lectura directa de BlueRiiot",
                     "ph_sensor": "Sensor de pH (p. ej. Blueriiot)",
                     "chlorine_sensor": "Sensor redox para medición de cloro (mV)",
                     "salt_sensor": "Sensor de nivel de sal",
-                    "tds_sensor": "Sensor de TDS / conductividad"
+                    "tds_sensor": "Sensor de TDS / conductividad",
+                    "water_safety_orp_warning_mv": "Below this value the water safety status becomes a warning (default: 550 mV)",
+                    "water_safety_orp_critical_mv": "Below this value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
+                    "water_safety_ph_min": "Below this value the water safety status becomes a warning (default: 7.0)",
+                    "water_safety_ph_max": "Above this value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
                 }
             },
             "blueriiot": {
@@ -511,6 +545,22 @@
                     "enable_sensor_health": "Muestra un problema cuando la infraestructura de medición configurada no está disponible. Con lectura directa de BlueRiiot se usa el estado interno del lector.",
                     "sensor_health_esp32_device": "Dispositivo opcional que proporciona las mediciones de la piscina. Se considera disponible cuando al menos una entidad de este dispositivo está disponible.",
                     "sensor_health_water_sensor": "Binary sensor opcional que está encendido cuando el sensor de agua (por ejemplo BlueRiiot) está disponible."
+                }
+            },
+            "measurement": {
+                "title": "Measurement infrastructure",
+                "description": "Configure direct BlueRiiot readings and optional reachability monitoring together.",
+                "submit": "Save",
+                "data": {
+                    "enable_blueriiot": "Read BlueRiiot directly",
+                    "blueriiot_mac": "BlueRiiot Bluetooth address",
+                    "blueriiot_interval_minutes": "Daytime reading interval",
+                    "blueriiot_night_interval_minutes": "Nighttime reading interval",
+                    "blueriiot_night_start": "Nighttime starts",
+                    "blueriiot_night_end": "Nighttime ends",
+                    "enable_sensor_health": "Enable reachability monitoring",
+                    "sensor_health_esp32_device": "ESP32 device",
+                    "sensor_health_water_sensor": "Water sensor reachability"
                 }
             },
             "notifications": {

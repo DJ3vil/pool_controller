@@ -7,12 +7,18 @@
                 "data": {
                     "name": "Nom de la piscine",
                     "water_volume": "Volume d’eau (litres)",
-                    "demo_mode": "Mode démo"
+                    "demo_mode": "Mode démo",
+                    "sanitizer_mode": "Sanitization mode",
+                    "sanitizer_product": "Chlorine product",
+                    "target_salt_g_l": "Target salt (g/L)"
                 },
                 "data_description": {
                     "name": "Nom affiché pour cette installation",
                     "water_volume": "Volume d’eau en litres (pour dosages et calculs de chauffage)",
-                    "demo_mode": "Mode démo : ne pilote pas de vrais appareils (tests uniquement)"
+                    "demo_mode": "Mode démo : ne pilote pas de vrais appareils (tests uniquement)",
+                    "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both",
+                    "sanitizer_product": "The main chlorine product used for dosing. Saltwater automatically uses a salt cell.",
+                    "target_salt_g_l": "Target salt level for saltwater or mixed operation"
                 }
             },
             "switches": {
@@ -51,14 +57,22 @@
                     "ph_sensor": "Capteur de pH",
                     "chlorine_sensor": "Capteur de chlore (redox)",
                     "salt_sensor": "Capteur de sel",
-                    "tds_sensor": "Capteur de conductivité"
+                    "tds_sensor": "Capteur de conductivité",
+                    "water_safety_orp_warning_mv": "ORP warning threshold (mV)",
+                    "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
+                    "water_safety_ph_min": "pH lower warning threshold",
+                    "water_safety_ph_max": "pH upper warning threshold"
                 },
                 "data_description": {
                     "temp_water_sensor": "Optional pool water temperature sensor when direct BlueRiiot reading is not used",
                     "ph_sensor": "pH value sensor (Blueriiot or similar)",
                     "chlorine_sensor": "Redox sensor for chlorine measurement in mV",
                     "salt_sensor": "Salt content sensor for saltwater pools",
-                    "tds_sensor": "Conductivity sensor (TDS) for water quality"
+                    "tds_sensor": "Conductivity sensor (TDS) for water quality",
+                    "water_safety_orp_warning_mv": "Below this value the water safety status becomes a warning (default: 550 mV)",
+                    "water_safety_orp_critical_mv": "Below this value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
+                    "water_safety_ph_min": "Below this value the water safety status becomes a warning (default: 7.0)",
+                    "water_safety_ph_max": "Above this value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
                 }
             },
             "blueriiot": {
@@ -95,6 +109,22 @@
                     "enable_sensor_health": "Affiche un problème lorsque l'infrastructure de mesure configurée n'est pas joignable. Avec la lecture directe BlueRiiot, l'état interne du lecteur est utilisé.",
                     "sensor_health_esp32_device": "Appareil optionnel qui fournit les mesures de la piscine. Il est considéré comme joignable lorsqu'au moins une entité de cet appareil est disponible.",
                     "sensor_health_water_sensor": "Binary sensor optionnel allumé lorsque le capteur d'eau (par exemple BlueRiiot) est joignable."
+                }
+            },
+            "measurement": {
+                "title": "Measurement infrastructure",
+                "description": "Configure direct BlueRiiot readings and optional reachability monitoring together.",
+                "submit": "Continue",
+                "data": {
+                    "enable_blueriiot": "Read BlueRiiot directly",
+                    "blueriiot_mac": "BlueRiiot Bluetooth address",
+                    "blueriiot_interval_minutes": "Daytime reading interval",
+                    "blueriiot_night_interval_minutes": "Nighttime reading interval",
+                    "blueriiot_night_start": "Nighttime starts",
+                    "blueriiot_night_end": "Nighttime ends",
+                    "enable_sensor_health": "Enable reachability monitoring",
+                    "sensor_health_esp32_device": "ESP32 device",
+                    "sensor_health_water_sensor": "Water sensor reachability"
                 }
             },
             "notifications": {
@@ -156,22 +186,14 @@
                     "chem_target_alkalinity_ppm": "Alcalinité cible (ppm)",
                     "chem_cooldown_minutes": "Délai après activité/ajout chimique (min)",
                     "chem_history_lookback_minutes": "Fenêtre d'historique stable (min)",
-                    "chem_min_stable_samples": "Échantillons stables minimum",
-                    "water_safety_orp_warning_mv": "Seuil d'avertissement ORP (mV)",
-                    "water_safety_orp_critical_mv": "Seuil critique ORP (mV)",
-                    "water_safety_ph_min": "Seuil d'avertissement pH bas",
-                    "water_safety_ph_max": "Seuil d'avertissement pH haut"
+                    "chem_min_stable_samples": "Échantillons stables minimum"
                 },
                 "data_description": {
                     "chem_target_tds_ppm": "Cible pour la recommandation de renouvellement d'eau quand le TDS est élevé",
                     "chem_target_alkalinity_ppm": "Cible de référence pour la recommandation d'alcalinité",
                     "chem_cooldown_minutes": "Aucune action d'alcalinité pendant le mélange/réaction de l'eau",
                     "chem_history_lookback_minutes": "Période de prise en compte des échantillons stables",
-                    "chem_min_stable_samples": "Nombre d'échantillons stables requis avant recommandation",
-                    "water_safety_orp_warning_mv": "Sous cette valeur ORP, l'état de l'eau passe en avertissement (par défaut : 550 mV)",
-                    "water_safety_orp_critical_mv": "Sous cette valeur ORP, l'état de l'eau passe en critique (par défaut : 400 mV) ; il doit être inférieur au seuil d'avertissement",
-                    "water_safety_ph_min": "Sous cette valeur de pH, l'état de l'eau passe en avertissement (par défaut : 7,0)",
-                    "water_safety_ph_max": "Au-dessus de cette valeur de pH, l'état de l'eau passe en avertissement ; avec un ORP bas, il est critique (par défaut : 7,8)"
+                    "chem_min_stable_samples": "Nombre d'échantillons stables requis avant recommandation"
                 }
             },
             "climate": {
@@ -405,11 +427,9 @@
                 "menu_options": {
                     "basic": "Base",
                     "switches": "Interrupteurs & puissance",
+                    "measurement": "Measurement infrastructure",
                     "water_quality": "Qualité de l’eau",
-                    "blueriiot": "Lecteur Bluetooth BlueRiiot",
-                    "sensor_health": "Disponibilité des capteurs",
                     "notifications": "Notifications de maintenance",
-                    "sanitizer": "Désinfection",
                     "chemistry": "Estimation chimique",
                     "climate": "Contrôle de température",
                     "dynamic_target": "Température cible dynamique",
@@ -429,12 +449,18 @@
                 "data": {
                     "name": "Nom de la piscine",
                     "water_volume": "Volume d'eau (litres)",
-                    "demo_mode": "Mode démo"
+                    "demo_mode": "Mode démo",
+                    "sanitizer_mode": "Sanitization mode",
+                    "sanitizer_product": "Chlorine product",
+                    "target_salt_g_l": "Target salt (g/L)"
                 },
                 "data_description": {
                     "name": "Nom affiché pour cette installation",
                     "water_volume": "Volume d'eau en litres (utilisé pour le dosage et le calcul du temps de chauffe)",
-                    "demo_mode": "Mode démo : ne commande pas d'appareils réels (tests uniquement)"
+                    "demo_mode": "Mode démo : ne commande pas d'appareils réels (tests uniquement)",
+                    "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both",
+                    "sanitizer_product": "The main chlorine product used for dosing. Saltwater automatically uses a salt cell.",
+                    "target_salt_g_l": "Target salt level for saltwater or mixed operation"
                 }
             },
             "switches": {
@@ -473,14 +499,22 @@
                     "ph_sensor": "Capteur pH",
                     "chlorine_sensor": "Capteur de chlore (redox)",
                     "salt_sensor": "Capteur de sel",
-                    "tds_sensor": "Capteur TDS"
+                    "tds_sensor": "Capteur TDS",
+                    "water_safety_orp_warning_mv": "ORP warning threshold (mV)",
+                    "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
+                    "water_safety_ph_min": "pH lower warning threshold",
+                    "water_safety_ph_max": "pH upper warning threshold"
                 },
                 "data_description": {
                     "temp_water_sensor": "Capteur optionnel de température de l'eau lorsque la lecture directe BlueRiiot n'est pas utilisée",
                     "ph_sensor": "Capteur pH (ex. Blueriiot)",
                     "chlorine_sensor": "Capteur redox pour la mesure du chlore (mV)",
                     "salt_sensor": "Capteur du taux de sel",
-                    "tds_sensor": "Capteur TDS / conductivité"
+                    "tds_sensor": "Capteur TDS / conductivité",
+                    "water_safety_orp_warning_mv": "Below this value the water safety status becomes a warning (default: 550 mV)",
+                    "water_safety_orp_critical_mv": "Below this value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
+                    "water_safety_ph_min": "Below this value the water safety status becomes a warning (default: 7.0)",
+                    "water_safety_ph_max": "Above this value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
                 }
             },
             "blueriiot": {
@@ -511,6 +545,22 @@
                     "enable_sensor_health": "Affiche un problème lorsque l'infrastructure de mesure configurée n'est pas joignable. Avec la lecture directe BlueRiiot, l'état interne du lecteur est utilisé.",
                     "sensor_health_esp32_device": "Appareil optionnel qui fournit les mesures de la piscine. Il est considéré comme joignable lorsqu'au moins une entité de cet appareil est disponible.",
                     "sensor_health_water_sensor": "Binary sensor optionnel allumé lorsque le capteur d'eau (par exemple BlueRiiot) est joignable."
+                }
+            },
+            "measurement": {
+                "title": "Measurement infrastructure",
+                "description": "Configure direct BlueRiiot readings and optional reachability monitoring together.",
+                "submit": "Save",
+                "data": {
+                    "enable_blueriiot": "Read BlueRiiot directly",
+                    "blueriiot_mac": "BlueRiiot Bluetooth address",
+                    "blueriiot_interval_minutes": "Daytime reading interval",
+                    "blueriiot_night_interval_minutes": "Nighttime reading interval",
+                    "blueriiot_night_start": "Nighttime starts",
+                    "blueriiot_night_end": "Nighttime ends",
+                    "enable_sensor_health": "Enable reachability monitoring",
+                    "sensor_health_esp32_device": "ESP32 device",
+                    "sensor_health_water_sensor": "Water sensor reachability"
                 }
             },
             "notifications": {

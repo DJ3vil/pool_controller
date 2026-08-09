@@ -2,17 +2,23 @@
   "config": {
     "step": {
       "init": {
-        "title": "Basic setup",
+        "title": "Basic settings & sanitization",
         "submit": "Continue",
         "data": {
           "name": "Pool name",
           "water_volume": "Water volume (liters)",
-          "demo_mode": "Demo mode"
+          "demo_mode": "Demo mode",
+          "sanitizer_mode": "Sanitization mode",
+          "sanitizer_product": "Chlorine product",
+          "target_salt_g_l": "Target salt (g/L)"
         },
         "data_description": {
           "name": "Display name for this pool installation",
           "water_volume": "Water volume in liters (used for dosing and heating time calculations)",
-          "demo_mode": "Demo mode: does not switch real devices (for testing only)"
+          "demo_mode": "Demo mode: does not switch real devices (for testing only)",
+          "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both",
+          "sanitizer_product": "The main chlorine product used for dosing. Saltwater automatically uses a salt cell.",
+          "target_salt_g_l": "Target salt level for saltwater or mixed operation"
         }
       },
       "switches": {
@@ -44,21 +50,29 @@
       },
       "water_quality": {
         "title": "Water quality",
-        "description": "Select classic temperature and water chemistry sensors. Leave this empty when direct BlueRiiot reading is enabled.",
+        "description": "Configure water-safety thresholds and, when direct BlueRiiot reading is disabled, the conventional sensors.",
         "submit": "Continue",
         "data": {
           "temp_water_sensor": "Water temperature",
           "ph_sensor": "pH sensor",
           "chlorine_sensor": "Chlorine (redox) sensor",
           "salt_sensor": "Salt sensor",
-          "tds_sensor": "Conductivity sensor"
+          "tds_sensor": "Conductivity sensor",
+          "water_safety_orp_warning_mv": "ORP warning threshold (mV)",
+          "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
+          "water_safety_ph_min": "pH lower warning threshold",
+          "water_safety_ph_max": "pH upper warning threshold"
         },
         "data_description": {
           "temp_water_sensor": "Optional pool water temperature sensor when direct BlueRiiot reading is not used",
           "ph_sensor": "pH value sensor (Blueriiot or similar)",
           "chlorine_sensor": "Redox sensor for chlorine measurement in mV",
           "salt_sensor": "Salt content sensor for saltwater pools",
-          "tds_sensor": "Conductivity sensor (TDS) for water quality"
+          "tds_sensor": "Conductivity sensor (TDS) for water quality",
+          "water_safety_orp_warning_mv": "Below this value the water safety status becomes a warning (default: 550 mV)",
+          "water_safety_orp_critical_mv": "Below this value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
+          "water_safety_ph_min": "Below this value the water safety status becomes a warning (default: 7.0)",
+          "water_safety_ph_max": "Above this value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
         }
       },
       "blueriiot": {
@@ -95,6 +109,22 @@
           "enable_sensor_health": "Shows a problem when the configured measurement infrastructure is unreachable. With direct BlueRiiot reading, the internal reader status is used.",
           "sensor_health_esp32_device": "Optional device that provides the pool measurement values. The integration treats it as reachable when at least one entity of this device is available.",
           "sensor_health_water_sensor": "Optional binary sensor that is on when the water sensor (for example BlueRiiot) is reachable."
+        }
+      },
+      "measurement": {
+        "title": "Measurement infrastructure",
+        "description": "Configure direct BlueRiiot readings and optional reachability monitoring together.",
+        "submit": "Continue",
+        "data": {
+          "enable_blueriiot": "Read BlueRiiot directly",
+          "blueriiot_mac": "BlueRiiot Bluetooth address",
+          "blueriiot_interval_minutes": "Daytime reading interval",
+          "blueriiot_night_interval_minutes": "Nighttime reading interval",
+          "blueriiot_night_start": "Nighttime starts",
+          "blueriiot_night_end": "Nighttime ends",
+          "enable_sensor_health": "Enable reachability monitoring",
+          "sensor_health_esp32_device": "ESP32 device",
+          "sensor_health_water_sensor": "Water sensor reachability"
         }
       },
       "notifications": {
@@ -148,30 +178,22 @@
         }
       },
       "chemistry": {
-        "title": "Chemistry estimation",
-        "description": "Simple tuning for robust chemistry recommendations. Defaults are suitable for most pools.",
+        "title": "Alkalinity calculation",
+        "description": "Fine-tune robust alkalinity and water-change recommendations. Defaults are suitable for most pools.",
         "submit": "Continue",
         "data": {
           "chem_target_tds_ppm": "Target TDS (ppm)",
           "chem_target_alkalinity_ppm": "Target alkalinity (ppm)",
           "chem_cooldown_minutes": "Cooldown after activity/chemical addition (min)",
           "chem_history_lookback_minutes": "Stable history window (min)",
-          "chem_min_stable_samples": "Minimum stable samples",
-          "water_safety_orp_warning_mv": "ORP warning threshold (mV)",
-          "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
-          "water_safety_ph_min": "pH lower warning threshold",
-          "water_safety_ph_max": "pH upper warning threshold"
+          "chem_min_stable_samples": "Minimum stable samples"
         },
         "data_description": {
           "chem_target_tds_ppm": "Target for dilution recommendation when TDS is high",
           "chem_target_alkalinity_ppm": "Reference target for alkalinity recommendation",
           "chem_cooldown_minutes": "No alkalinity action while water is likely still reacting/mixing",
           "chem_history_lookback_minutes": "How far back stable samples are considered",
-          "chem_min_stable_samples": "Required stable samples before actionable recommendations",
-          "water_safety_orp_warning_mv": "Below this ORP value the water safety status becomes a warning (default: 550 mV)",
-          "water_safety_orp_critical_mv": "Below this ORP value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
-          "water_safety_ph_min": "Below this pH value the water safety status becomes a warning (default: 7.0)",
-          "water_safety_ph_max": "Above this pH value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
+          "chem_min_stable_samples": "Required stable samples before actionable recommendations"
         }
       },
       "climate": {
@@ -403,14 +425,12 @@
         "title": "Options menu",
         "description": "Select the section you want to edit.",
         "menu_options": {
-          "basic": "Basic settings",
+          "basic": "Basic settings & sanitization",
           "switches": "Switches & power",
+          "measurement": "Measurement infrastructure",
           "water_quality": "Water quality",
-          "blueriiot": "BlueRiiot Bluetooth reader",
-          "sensor_health": "Sensor reachability",
           "notifications": "Maintenance notifications",
-          "sanitizer": "Sanitizer",
-          "chemistry": "Chemistry estimation",
+          "chemistry": "Alkalinity calculation",
           "climate": "Temperature control",
           "dynamic_target": "Dynamic target temperature",
           "frost": "Frost protection",
@@ -423,18 +443,24 @@
         }
       },
       "basic": {
-        "title": "Settings",
-        "description": "General settings. Changes are stored in the config entry options.",
-        "submit": "Continue",
+        "title": "Basic settings & sanitization",
+        "description": "General settings and sanitization. Changes are saved directly.",
+        "submit": "Save",
         "data": {
           "name": "Pool name",
           "water_volume": "Water volume (liters)",
-          "demo_mode": "Demo mode"
+          "demo_mode": "Demo mode",
+          "sanitizer_mode": "Sanitization mode",
+          "sanitizer_product": "Chlorine product",
+          "target_salt_g_l": "Target salt (g/L)"
         },
         "data_description": {
           "name": "Display name for this pool installation",
           "water_volume": "Water volume in liters (used for dosing and heating time calculations)",
-          "demo_mode": "Demo mode: does not switch real devices (for testing only)"
+          "demo_mode": "Demo mode: does not switch real devices (for testing only)",
+          "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both",
+          "sanitizer_product": "The main chlorine product used for dosing. Saltwater automatically uses a salt cell.",
+          "target_salt_g_l": "Target salt level for saltwater or mixed operation"
         }
       },
       "switches": {
@@ -466,21 +492,29 @@
       },
       "water_quality": {
         "title": "Water quality",
-        "description": "Update classic temperature and water chemistry sensor mapping. Leave this empty when direct BlueRiiot reading is enabled.",
-        "submit": "Continue",
+        "description": "Configure water-safety thresholds and, when direct BlueRiiot reading is disabled, the conventional sensors.",
+        "submit": "Save",
         "data": {
           "temp_water_sensor": "Water temperature",
           "ph_sensor": "pH sensor",
           "chlorine_sensor": "Chlorine (redox) sensor",
           "salt_sensor": "Salt sensor",
-          "tds_sensor": "Conductivity sensor"
+          "tds_sensor": "Conductivity sensor",
+          "water_safety_orp_warning_mv": "ORP warning threshold (mV)",
+          "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
+          "water_safety_ph_min": "pH lower warning threshold",
+          "water_safety_ph_max": "pH upper warning threshold"
         },
         "data_description": {
           "temp_water_sensor": "Optional pool water temperature sensor when direct BlueRiiot reading is not used",
           "ph_sensor": "pH value sensor (Blueriiot or similar)",
           "chlorine_sensor": "Redox sensor for chlorine measurement in mV",
           "salt_sensor": "Salt content sensor for saltwater pools",
-          "tds_sensor": "Conductivity sensor (TDS) for water quality"
+          "tds_sensor": "Conductivity sensor (TDS) for water quality",
+          "water_safety_orp_warning_mv": "Below this value the water safety status becomes a warning (default: 550 mV)",
+          "water_safety_orp_critical_mv": "Below this value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
+          "water_safety_ph_min": "Below this value the water safety status becomes a warning (default: 7.0)",
+          "water_safety_ph_max": "Above this value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
         }
       },
       "blueriiot": {
@@ -511,6 +545,22 @@
           "enable_sensor_health": "Shows a problem when the configured measurement infrastructure is unreachable. With direct BlueRiiot reading, the internal reader status is used.",
           "sensor_health_esp32_device": "Optional device that provides the pool measurement values. The integration treats it as reachable when at least one entity of this device is available.",
           "sensor_health_water_sensor": "Optional binary sensor that is on when the water sensor (for example BlueRiiot) is reachable."
+        }
+      },
+      "measurement": {
+        "title": "Measurement infrastructure",
+        "description": "Configure direct BlueRiiot readings and optional reachability monitoring together.",
+        "submit": "Save",
+        "data": {
+          "enable_blueriiot": "Read BlueRiiot directly",
+          "blueriiot_mac": "BlueRiiot Bluetooth address",
+          "blueriiot_interval_minutes": "Daytime reading interval",
+          "blueriiot_night_interval_minutes": "Nighttime reading interval",
+          "blueriiot_night_start": "Nighttime starts",
+          "blueriiot_night_end": "Nighttime ends",
+          "enable_sensor_health": "Enable reachability monitoring",
+          "sensor_health_esp32_device": "ESP32 device",
+          "sensor_health_water_sensor": "Water sensor reachability"
         }
       },
       "notifications": {
@@ -564,9 +614,9 @@
         }
       },
       "chemistry": {
-        "title": "Chemistry estimation",
-        "description": "Simple tuning for robust chemistry recommendations. Defaults are suitable for most pools.",
-        "submit": "Continue",
+        "title": "Alkalinity calculation",
+        "description": "Fine-tune robust alkalinity and water-change recommendations. Defaults are suitable for most pools.",
+        "submit": "Save",
         "data": {
           "chem_target_tds_ppm": "Target TDS (ppm)",
           "chem_target_alkalinity_ppm": "Target alkalinity (ppm)",

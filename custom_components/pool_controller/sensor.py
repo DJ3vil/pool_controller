@@ -378,7 +378,9 @@ class PoolConfigSensor(PoolBaseSensor):
                 if val is None:
                     val = (self.coordinator.entry.data or {}).get(self._option_key)
             if val is None:
-                return int(self._default)
-            return int(val)
+                val = self._default
+            # Duration and threshold sensors historically expose integers, while
+            # pH threshold sensors must retain their configured decimal value.
+            return float(val) if isinstance(self._default, float) else int(val)
         except Exception:
-            return int(self._default)
+            return float(self._default) if isinstance(self._default, float) else int(self._default)
