@@ -69,9 +69,18 @@ Nach der Konfiguration übernimmt die Integration automatisch:
 - Empfehlungen für pH-Korrekturen mit pH-Minus und pH-Plus
 - Empfehlungen für Chlordosierung
 - TDS-Überwachung und Wasserwechsel-Empfehlungen
-- Warnung bei niedrigem Chlor, typischerweise ORP kleiner 400 mV
+- Warnung bei niedrigem Chlor, standardmäßig ORP kleiner 550 mV; kritisch unter 400 mV
 - Warnung bei pH außerhalb des Zielbereichs
 - Anzeige aller Messwerte als Sensoren
+
+Die ORP- und pH-Schwellen lassen sich im Konfigurationsdialog unter **Chemie-Schätzung** an die eingesetzte Wasserpflege anpassen.
+
+### Wasserqualitätskarte im Dashboard
+
+Im Editor der Dashboard-Karte lässt sich unter **Wasserqualität** auswählen, welche Skalen für pH, ORP/Chlor, Salz,
+TDS und Alkalinität angezeigt werden. Die Sichtbereiche für pH und ORP können eingegrenzt werden, damit die üblichen
+Messwerte besser lesbar sind. Die im Backend konfigurierten Warn- und Kritisch-Schwellen erscheinen als Linien auf den
+pH- und ORP-Skalen und bleiben für die Wasser-Sicherheitsbewertung maßgeblich.
 
 Dieses Kapitel dokumentiert außerdem die **Wartungs- und Empfehlungssensoren** der Integration sowie die zugrunde liegenden Heuristiken für pH, Chlor oder ORP, Salz sowie TDS und Wasserwechsel.
 

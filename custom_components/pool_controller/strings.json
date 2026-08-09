@@ -139,14 +139,22 @@
           "chem_target_alkalinity_ppm": "Target alkalinity (ppm)",
           "chem_cooldown_minutes": "Cooldown after activity/chemical addition (min)",
           "chem_history_lookback_minutes": "Stable history window (min)",
-          "chem_min_stable_samples": "Minimum stable samples"
+          "chem_min_stable_samples": "Minimum stable samples",
+          "water_safety_orp_warning_mv": "ORP warning threshold (mV)",
+          "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
+          "water_safety_ph_min": "pH lower warning threshold",
+          "water_safety_ph_max": "pH upper warning threshold"
         },
         "data_description": {
           "chem_target_tds_ppm": "Target for dilution recommendation when TDS is high",
           "chem_target_alkalinity_ppm": "Reference target for alkalinity recommendation",
           "chem_cooldown_minutes": "No alkalinity action while water is likely still reacting/mixing",
           "chem_history_lookback_minutes": "How far back stable samples are considered",
-          "chem_min_stable_samples": "Required stable samples before actionable recommendations"
+          "chem_min_stable_samples": "Required stable samples before actionable recommendations",
+          "water_safety_orp_warning_mv": "Below this ORP value the water safety status becomes a warning (default: 550 mV)",
+          "water_safety_orp_critical_mv": "Below this ORP value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
+          "water_safety_ph_min": "Below this pH value the water safety status becomes a warning (default: 7.0)",
+          "water_safety_ph_max": "Above this pH value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
         }
       },
       "climate": {
@@ -843,6 +851,10 @@
       "tds_status": { "name": "TDS status" },
       "water_safety_status": { "name": "Water safety status" },
       "water_safety_reason": { "name": "Water safety reason" },
+      "water_safety_orp_warning_mv": { "name": "ORP warning threshold" },
+      "water_safety_orp_critical_mv": { "name": "ORP critical threshold" },
+      "water_safety_ph_min": { "name": "pH lower warning threshold" },
+      "water_safety_ph_max": { "name": "pH upper warning threshold" },
       "alkalinity_estimated_ppm": { "name": "Estimated alkalinity" },
       "alkalinity_status": { "name": "Alkalinity status" },
       "alkalinity_action": { "name": "Alkalinity action" },

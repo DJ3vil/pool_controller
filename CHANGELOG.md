@@ -2,6 +2,10 @@
 
 All notable changes to this integration are documented in this file.
 
+## [2.14.4] - 2026-08-09
+- configurable water quality thresholds
+
+
 ## [2.14.2] - 2026-07-21
 - support for critical water situations in addition to normal warnings
 - support for release of alerts

@@ -14,6 +14,14 @@ from .const import (
     CONF_PV_OFF_THRESHOLD,
     DEFAULT_PV_ON,
     DEFAULT_PV_OFF,
+    CONF_WATER_SAFETY_ORP_WARNING_MV,
+    CONF_WATER_SAFETY_ORP_CRITICAL_MV,
+    CONF_WATER_SAFETY_PH_MIN,
+    CONF_WATER_SAFETY_PH_MAX,
+    DEFAULT_WATER_SAFETY_ORP_WARNING_MV,
+    DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV,
+    DEFAULT_WATER_SAFETY_PH_MIN,
+    DEFAULT_WATER_SAFETY_PH_MAX,
 )
 
 
@@ -130,6 +138,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
             PoolConfigSensor(coordinator, CONF_BATH_DURATION, DEFAULT_BATH_MINUTES, None),
             PoolConfigSensor(coordinator, CONF_PV_ON_THRESHOLD, DEFAULT_PV_ON, None, unit="W", icon="mdi:flash"),
             PoolConfigSensor(coordinator, CONF_PV_OFF_THRESHOLD, DEFAULT_PV_OFF, None, unit="W", icon="mdi:flash"),
+            PoolConfigSensor(coordinator, CONF_WATER_SAFETY_ORP_WARNING_MV, DEFAULT_WATER_SAFETY_ORP_WARNING_MV, None, unit="mV", icon="mdi:alert"),
+            PoolConfigSensor(coordinator, CONF_WATER_SAFETY_ORP_CRITICAL_MV, DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV, None, unit="mV", icon="mdi:alert-octagon"),
+            PoolConfigSensor(coordinator, CONF_WATER_SAFETY_PH_MIN, DEFAULT_WATER_SAFETY_PH_MIN, None, unit=None, icon="mdi:ph"),
+            PoolConfigSensor(coordinator, CONF_WATER_SAFETY_PH_MAX, DEFAULT_WATER_SAFETY_PH_MAX, None, unit=None, icon="mdi:ph"),
         ]
         async_add_entities(cfg_sensors)
     except Exception:

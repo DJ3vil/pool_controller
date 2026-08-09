@@ -156,14 +156,22 @@
                     "chem_target_alkalinity_ppm": "Alcalinidad objetivo (ppm)",
                     "chem_cooldown_minutes": "Enfriamiento tras actividad/adición química (min)",
                     "chem_history_lookback_minutes": "Ventana de historial estable (min)",
-                    "chem_min_stable_samples": "Muestras estables mínimas"
+                    "chem_min_stable_samples": "Muestras estables mínimas",
+                    "water_safety_orp_warning_mv": "Umbral de advertencia ORP (mV)",
+                    "water_safety_orp_critical_mv": "Umbral crítico ORP (mV)",
+                    "water_safety_ph_min": "Umbral inferior de advertencia de pH",
+                    "water_safety_ph_max": "Umbral superior de advertencia de pH"
                 },
                 "data_description": {
                     "chem_target_tds_ppm": "Objetivo para recomendación de recambio cuando el TDS es alto",
                     "chem_target_alkalinity_ppm": "Objetivo de referencia para recomendaciones de alcalinidad",
                     "chem_cooldown_minutes": "Sin acción de alcalinidad mientras el agua aún se mezcla/reacciona",
                     "chem_history_lookback_minutes": "Hasta dónde se consideran muestras estables",
-                    "chem_min_stable_samples": "Muestras estables necesarias antes de recomendaciones accionables"
+                    "chem_min_stable_samples": "Muestras estables necesarias antes de recomendaciones accionables",
+                    "water_safety_orp_warning_mv": "Por debajo de este ORP el estado del agua pasa a advertencia (predeterminado: 550 mV)",
+                    "water_safety_orp_critical_mv": "Por debajo de este ORP el estado del agua pasa a crítico (predeterminado: 400 mV); debe estar por debajo del umbral de advertencia",
+                    "water_safety_ph_min": "Por debajo de este pH el estado del agua pasa a advertencia (predeterminado: 7,0)",
+                    "water_safety_ph_max": "Por encima de este pH el estado del agua pasa a advertencia; con ORP bajo es crítico (predeterminado: 7,8)"
                 }
             },
             "climate": {
@@ -1032,6 +1040,18 @@
             },
             "water_safety_reason": {
                 "name": "Motivo de seguridad del agua"
+            },
+            "water_safety_orp_warning_mv": {
+                "name": "Umbral de advertencia ORP"
+            },
+            "water_safety_orp_critical_mv": {
+                "name": "Umbral crítico ORP"
+            },
+            "water_safety_ph_min": {
+                "name": "Umbral inferior de advertencia de pH"
+            },
+            "water_safety_ph_max": {
+                "name": "Umbral superior de advertencia de pH"
             },
             "alkalinity_estimated_ppm": {
                 "name": "Alcalinidad estimada"

@@ -156,14 +156,22 @@
                     "chem_target_alkalinity_ppm": "Ziel Alkalinität (ppm)",
                     "chem_cooldown_minutes": "Sperrzeit nach Aktivität/Chemiezugabe (min)",
                     "chem_history_lookback_minutes": "Verlaufsfenster stabile Werte (min)",
-                    "chem_min_stable_samples": "Mindestanzahl stabiler Messungen"
+                    "chem_min_stable_samples": "Mindestanzahl stabiler Messungen",
+                    "water_safety_orp_warning_mv": "ORP-Warnschwelle (mV)",
+                    "water_safety_orp_critical_mv": "ORP-Kritischschwelle (mV)",
+                    "water_safety_ph_min": "pH-Warnschwelle unten",
+                    "water_safety_ph_max": "pH-Warnschwelle oben"
                 },
                 "data_description": {
                     "chem_target_tds_ppm": "Zielwert für Wasserwechsel-Empfehlungen bei hohem TDS",
                     "chem_target_alkalinity_ppm": "Referenzziel für Alkalinitäts-Empfehlungen",
                     "chem_cooldown_minutes": "Während dieser Zeit keine Alkalinitäts-Aktion (Misch-/Reaktionsphase)",
                     "chem_history_lookback_minutes": "Wie weit zurück stabile Messungen berücksichtigt werden",
-                    "chem_min_stable_samples": "Benötigte stabile Messpunkte für konkrete Empfehlungen"
+                    "chem_min_stable_samples": "Benötigte stabile Messpunkte für konkrete Empfehlungen",
+                    "water_safety_orp_warning_mv": "Unter diesem ORP-Wert wird der Wasserstatus zur Warnung (Standard: 550 mV)",
+                    "water_safety_orp_critical_mv": "Unter diesem ORP-Wert wird der Wasserstatus kritisch (Standard: 400 mV); muss unter der Warnschwelle liegen",
+                    "water_safety_ph_min": "Unter diesem pH-Wert wird der Wasserstatus zur Warnung (Standard: 7,0)",
+                    "water_safety_ph_max": "Über diesem pH-Wert wird der Wasserstatus zur Warnung; bei niedrigem ORP kritisch (Standard: 7,8)"
                 }
             },
             "climate": {
@@ -1032,6 +1040,18 @@
             },
             "water_safety_reason": {
                 "name": "Wasser-Sicherheitsgrund"
+            },
+            "water_safety_orp_warning_mv": {
+                "name": "ORP-Warnschwelle"
+            },
+            "water_safety_orp_critical_mv": {
+                "name": "ORP-Kritischschwelle"
+            },
+            "water_safety_ph_min": {
+                "name": "pH-Warnschwelle unten"
+            },
+            "water_safety_ph_max": {
+                "name": "pH-Warnschwelle oben"
             },
             "alkalinity_estimated_ppm": {
                 "name": "Geschätzte Alkalinität"

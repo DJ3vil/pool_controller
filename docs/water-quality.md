@@ -69,9 +69,18 @@ Once configured, the integration automatically:
 - ✅ Recommends pH adjustments (pH-, pH+)
 - ✅ Recommends chlorine dosing
 - ✅ Monitors TDS and recommends water changes
-- ✅ Flags low chlorine (ORP < 400mV)
+- ✅ Flags low chlorine (ORP < 550 mV by default; critical below 400 mV)
 - ✅ Flags pH out of range
 - ✅ Displays all metrics in sensors
+
+The ORP and pH thresholds can be adjusted for the water-treatment setup in the **Chemistry estimation** configuration step.
+
+### Dashboard water-quality card
+
+In the dashboard card editor, select **Water quality** to choose which pH, ORP/chlorine, salt, TDS and alkalinity
+scales are displayed. The pH and ORP display ranges can be narrowed to make everyday measurements easier to read.
+The configured backend warning and critical thresholds are shown as lines on the pH and ORP scales; they remain
+authoritative for the water-safety assessment.
 
 This chapter also documents the integration’s **maintenance recommendation sensors** and the (best-effort) calculations
 behind them (pH, chlorine/ORP, salt, TDS/water change).

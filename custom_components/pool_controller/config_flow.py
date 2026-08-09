@@ -258,6 +258,14 @@ def _chemistry_schema(curr: dict | None = None):
             selector.NumberSelector(selector.NumberSelectorConfig(min=120, max=24 * 60, step=30, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="min")),
         vol.Optional(CONF_CHEM_MIN_STABLE_SAMPLES, default=c.get(CONF_CHEM_MIN_STABLE_SAMPLES, DEFAULT_CHEM_MIN_STABLE_SAMPLES)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=2, max=12, step=1, mode=selector.NumberSelectorMode.BOX)),
+        vol.Optional(CONF_WATER_SAFETY_ORP_WARNING_MV, default=c.get(CONF_WATER_SAFETY_ORP_WARNING_MV, DEFAULT_WATER_SAFETY_ORP_WARNING_MV)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=350, max=900, step=10, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="mV")),
+        vol.Optional(CONF_WATER_SAFETY_ORP_CRITICAL_MV, default=c.get(CONF_WATER_SAFETY_ORP_CRITICAL_MV, DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=250, max=800, step=10, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="mV")),
+        vol.Optional(CONF_WATER_SAFETY_PH_MIN, default=c.get(CONF_WATER_SAFETY_PH_MIN, DEFAULT_WATER_SAFETY_PH_MIN)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=6.5, max=7.6, step=0.1, mode=selector.NumberSelectorMode.BOX)),
+        vol.Optional(CONF_WATER_SAFETY_PH_MAX, default=c.get(CONF_WATER_SAFETY_PH_MAX, DEFAULT_WATER_SAFETY_PH_MAX)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=7.4, max=8.5, step=0.1, mode=selector.NumberSelectorMode.BOX)),
     })
 
 def _climate_schema(curr: dict | None = None):

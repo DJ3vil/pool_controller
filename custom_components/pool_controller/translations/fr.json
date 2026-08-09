@@ -156,14 +156,22 @@
                     "chem_target_alkalinity_ppm": "Alcalinité cible (ppm)",
                     "chem_cooldown_minutes": "Délai après activité/ajout chimique (min)",
                     "chem_history_lookback_minutes": "Fenêtre d'historique stable (min)",
-                    "chem_min_stable_samples": "Échantillons stables minimum"
+                    "chem_min_stable_samples": "Échantillons stables minimum",
+                    "water_safety_orp_warning_mv": "Seuil d'avertissement ORP (mV)",
+                    "water_safety_orp_critical_mv": "Seuil critique ORP (mV)",
+                    "water_safety_ph_min": "Seuil d'avertissement pH bas",
+                    "water_safety_ph_max": "Seuil d'avertissement pH haut"
                 },
                 "data_description": {
                     "chem_target_tds_ppm": "Cible pour la recommandation de renouvellement d'eau quand le TDS est élevé",
                     "chem_target_alkalinity_ppm": "Cible de référence pour la recommandation d'alcalinité",
                     "chem_cooldown_minutes": "Aucune action d'alcalinité pendant le mélange/réaction de l'eau",
                     "chem_history_lookback_minutes": "Période de prise en compte des échantillons stables",
-                    "chem_min_stable_samples": "Nombre d'échantillons stables requis avant recommandation"
+                    "chem_min_stable_samples": "Nombre d'échantillons stables requis avant recommandation",
+                    "water_safety_orp_warning_mv": "Sous cette valeur ORP, l'état de l'eau passe en avertissement (par défaut : 550 mV)",
+                    "water_safety_orp_critical_mv": "Sous cette valeur ORP, l'état de l'eau passe en critique (par défaut : 400 mV) ; il doit être inférieur au seuil d'avertissement",
+                    "water_safety_ph_min": "Sous cette valeur de pH, l'état de l'eau passe en avertissement (par défaut : 7,0)",
+                    "water_safety_ph_max": "Au-dessus de cette valeur de pH, l'état de l'eau passe en avertissement ; avec un ORP bas, il est critique (par défaut : 7,8)"
                 }
             },
             "climate": {
@@ -1032,6 +1040,18 @@
             },
             "water_safety_reason": {
                 "name": "Raison de sécurité de l'eau"
+            },
+            "water_safety_orp_warning_mv": {
+                "name": "Seuil d'avertissement ORP"
+            },
+            "water_safety_orp_critical_mv": {
+                "name": "Seuil critique ORP"
+            },
+            "water_safety_ph_min": {
+                "name": "Seuil d'avertissement pH bas"
+            },
+            "water_safety_ph_max": {
+                "name": "Seuil d'avertissement pH haut"
             },
             "alkalinity_estimated_ppm": {
                 "name": "Alcalinité estimée"

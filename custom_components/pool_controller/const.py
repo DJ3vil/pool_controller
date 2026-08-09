@@ -128,6 +128,10 @@ CONF_CHEM_TARGET_ALKALINITY_PPM = "chem_target_alkalinity_ppm"
 CONF_CHEM_COOLDOWN_MINUTES = "chem_cooldown_minutes"
 CONF_CHEM_HISTORY_LOOKBACK_MINUTES = "chem_history_lookback_minutes"
 CONF_CHEM_MIN_STABLE_SAMPLES = "chem_min_stable_samples"
+CONF_WATER_SAFETY_ORP_WARNING_MV = "water_safety_orp_warning_mv"
+CONF_WATER_SAFETY_ORP_CRITICAL_MV = "water_safety_orp_critical_mv"
+CONF_WATER_SAFETY_PH_MIN = "water_safety_ph_min"
+CONF_WATER_SAFETY_PH_MAX = "water_safety_ph_max"
 
 # Frost protection (duty-cycle) tuning
 # Below CONF_FROST_START_TEMP the pump may run periodically to prevent freezing.
@@ -163,6 +167,13 @@ DEFAULT_FILTER_INTERVAL = 12 * 60  # 12 hours = 720 minutes
 # Stoßchlorungsdauer
 CONF_CHLORINE_DURATION = "chlorine_duration"
 DEFAULT_CHLORINE_DURATION = 5
+
+# Water safety alert thresholds. These are intentionally more conservative than
+# the previous fixed 650/450 mV values and can be adjusted in the chemistry step.
+DEFAULT_WATER_SAFETY_ORP_WARNING_MV = 550
+DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV = 400
+DEFAULT_WATER_SAFETY_PH_MIN = 7.0
+DEFAULT_WATER_SAFETY_PH_MAX = 7.8
 
 # PV thresholds (in Watts or sensor units)
 CONF_PV_ON_THRESHOLD = "pv_on_threshold"

@@ -2639,10 +2639,28 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             except Exception:
                 chlor_float = None
             if ph_float is not None and chlor_float is not None:
-                ph_outside_comfort = ph_float < 7.1 or ph_float > 7.6
-                ph_high = ph_float > 7.8
-                orp_low = chlor_float < 650
-                orp_very_low = chlor_float < 450
+                try:
+                    orp_warning_mv = float(conf.get(CONF_WATER_SAFETY_ORP_WARNING_MV, DEFAULT_WATER_SAFETY_ORP_WARNING_MV))
+                    orp_critical_mv = float(conf.get(CONF_WATER_SAFETY_ORP_CRITICAL_MV, DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV))
+                    ph_min = float(conf.get(CONF_WATER_SAFETY_PH_MIN, DEFAULT_WATER_SAFETY_PH_MIN))
+                    ph_max = float(conf.get(CONF_WATER_SAFETY_PH_MAX, DEFAULT_WATER_SAFETY_PH_MAX))
+                except (TypeError, ValueError):
+                    orp_warning_mv = DEFAULT_WATER_SAFETY_ORP_WARNING_MV
+                    orp_critical_mv = DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV
+                    ph_min = DEFAULT_WATER_SAFETY_PH_MIN
+                    ph_max = DEFAULT_WATER_SAFETY_PH_MAX
+                orp_warning_mv = min(max(orp_warning_mv, 350), 900)
+                orp_critical_mv = min(max(orp_critical_mv, 250), 800)
+                if orp_critical_mv >= orp_warning_mv:
+                    orp_critical_mv = orp_warning_mv - 10
+                if ph_min >= ph_max:
+                    ph_min = DEFAULT_WATER_SAFETY_PH_MIN
+                    ph_max = DEFAULT_WATER_SAFETY_PH_MAX
+
+                ph_outside_comfort = ph_float < ph_min or ph_float > ph_max
+                ph_high = ph_float > ph_max
+                orp_low = chlor_float < orp_warning_mv
+                orp_very_low = chlor_float < orp_critical_mv
                 if orp_very_low:
                     water_safety_status = "critical"
                     water_safety_reason = "very_low_orp"
