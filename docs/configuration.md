@@ -6,7 +6,7 @@
 
 ## Configuration Flow
 
-The integration uses a guided wizard (10–11 steps depending on sanitizer mode):
+The integration uses a guided wizard with 15 steps, or 16 when saltwater or mixed sanitizing is selected:
 
 ### Step 1: Basic Information
 - **Name**: Display name for your pool (e.g., "Whirlpool Demo")
@@ -21,33 +21,41 @@ The integration uses a guided wizard (10–11 steps depending on sanitizer mode)
   - Main power sensor (W) for runtime/power-saving diagnostics and cost tracking
   - Auxiliary power sensor (optional)
 
-### Step 3: Water Quality Sensors (Optional)
-Configure only when native BlueRiiot reading is disabled:
+### Step 3: Measurements & Reachability (Optional)
+- **Read BlueRiiot directly**: Enables the built-in Bluetooth reader. Nearby devices are listed automatically; you can also enter a MAC address manually.
+- **Salt calibration divisor**: Default `18` for Blue Connect Plus Salt. Change it only after comparison with a reliable reference measurement.
+- **Daytime/Night-time reading interval**: Minimum time between readings, with configurable night start and end times.
+- **Enable sensor reachability monitoring**: Enables diagnostics for an external measurement setup. When direct BlueRiiot reading is enabled, external ESP32 and water-sensor monitoring are not configured.
+- **ESP32 device**: Optional Bluetooth-proxy or external measurement device; reachable when at least one of its entities is available.
+- **Water sensor reachability**: Optional binary sensor that is `on` while the water sensor is reachable.
+
+### Step 4: Water Quality Sensors & Safety (Optional)
+When direct BlueRiiot reading is enabled, Pool Controller clears these external sensor mappings and uses its own readings. Otherwise configure:
 - **Water Temperature Sensor**: Current pool water temperature
 - **pH Sensor**: Water pH value (0-14)
 - **Chlorine Sensor**: Redox/ORP value (mV)
 - **Salt Sensor**: Salt concentration (g/L) - optional
 - **Conductivity Sensor**: µS/cm - optional
+- **ORP warning/critical thresholds**: Thresholds for water-quality diagnostics
+- **Minimum/maximum pH**: Accepted pH range for water-quality diagnostics
 
-### Step 3b: Sensor Reachability Monitoring (Optional)
-- **Enable sensor reachability monitoring**: shows a diagnostic problem if the configured measurement infrastructure is unavailable
-- **ESP32 device**: optional Bluetooth-proxy device; reachable when at least one of its entities is available
-- **Water sensor reachability**: optional binary sensor that is `on` when the water sensor, for example BlueRiiot, is reachable
-
-### Step 3c: Maintenance Notifications (Optional)
+### Step 5: Maintenance Notifications (Optional)
 - **Phone**: choose an installed Home Assistant Companion App service (`notify.mobile_app_*`), for example your iPhone. Leave disabled to send no push notifications.
 - **Notify when a sensor is unreachable**: sends a notification when the configured ESP32 or water sensor becomes unavailable.
 - **Notify about water quality**: sends a notification for `critical` or `urgent` TDS, or for alkalinity outside the recommended range.
 
 An alert is sent only when a condition begins. It is not repeated by the normal 30-second update cycle. Once the condition has cleared, a later recurrence creates a new notification. If the selected phone service is temporarily unavailable, the alert is retried when it becomes available again.
 
-### Step 4: Sanitizer / Disinfection
+### Step 6: Sanitizer / Disinfection
 Pool Controller supports different disinfection styles and adapts some water-quality interpretation accordingly.
 
 - **Sanitizer Mode**: `chlorine`, `saltwater`, or `mixed` (salt + chlorine)
-- **Step 4b (Saltwater/Mixed only)**: **Target Salt (g/L)** (used as a baseline for effective TDS)
+- **Sanitizer Product**: Dichlor, trichlor, calcium hypochlorite, liquid chlorine, salt chlorinator cell, or other. Saltwater automatically uses the salt-chlorinator profile.
 
-### Step 4c: Chemistry Estimation (simple tuning)
+### Step 7: Target Salt (Saltwater/Mixed Only)
+- **Target Salt (g/L)**: Used as a baseline for effective TDS.
+
+### Step 8: Chemistry Estimation (Simple Tuning)
 
 This step keeps chemistry recommendations practical without exposing too many expert-only controls:
 
@@ -59,7 +67,7 @@ This step keeps chemistry recommendations practical without exposing too many ex
 
 For most installations, defaults are sufficient.
 
-### Step 5: Temperature Control (Thermostat)
+### Step 9: Temperature Control (Thermostat)
 - **Target Temp**: Desired water temperature (persisted)
 - **Away Temperature**: Target temperature used when Away mode is active
 - **Min/Max/Step**: UI bounds for the thermostat entity
@@ -70,11 +78,17 @@ For most installations, defaults are sufficient.
 - Stops manual timers and pause
 - Keeps automatic filtering and frost protection active
 
-### Step 6: Frost Protection
+### Step 10: Dynamic Target Temperature (Optional)
+- **Enable dynamic target**: Adjusts the thermostat target using season and weather.
+- **Weather entity**: Source for weather-based adjustment.
+- **Seasonal offsets**: Winter, spring, summer, and autumn offsets.
+- **Minimum/maximum offset, weather cap, weights, smoothing, and maximum hourly step**: Limit and stabilize the calculated target.
+
+### Step 11: Frost Protection
 - **Outdoor Temperature Sensor**: For frost protection logic
 - **Frost Protection Tuning** (optional): duty-cycle settings and a quiet-hours emergency threshold
 
-### Step 7: Calendar & Quiet Hours
+### Step 12: Calendar & Quiet Hours
 - **Pool Calendar**: Calendar entity for operation schedule
 - **Holiday Calendar**: Calendar used to treat local holidays like weekends (weekend quiet hours apply)
 - **Weather Guard (Optional)**:
@@ -95,7 +109,7 @@ pool_controller:
   event_rain_probability: 60
 ```
 
-### Step 8: Filter Settings
+### Step 13: Filter Settings
 - **Automatic filtering**: Enable/disable automatic filter cycles
 - **Filter Interval**: Minutes between automatic filter cycles (default: 720 = 12 hours)
 - **Filter Duration**: Default run length for one cycle (minutes)
@@ -106,8 +120,13 @@ pool_controller:
 - **Credit Sources**: Which run reasons count as credit (filter/bathing/chlorine/preheat/pv/frost/thermostat)
 - **Power-saving filter deadline hour**: Hour of day (0-23) when deferred auto-filter runs are forced in power-saving mode (default: 16)
 
-### Step 9: PV Solar Integration
+### Step 14: Manual Durations
+- **Bathing Duration**: Default duration for a manual bathing session.
+- **Quick Chlorine Duration**: Default duration for a manual chlorine boost.
+
+### Step 15: PV Solar Integration
 - **PV Surplus Sensor**: Entity measuring excess solar production (W)
+- **House Load Sensor**: Optional live household power sensor for power-saving decisions.
 - **Power-Saving Threshold Factor (%)**: Multiplier for power-saving stage thresholds (default: 105%).
   - `100%`: stage starts at estimated pool demand.
   - `>100%`: more conservative, leaves PV reserve for other loads.
@@ -119,7 +138,7 @@ pool_controller:
 - **PV Stability Window**: How long the smoothed value must persist before a state change (seconds)
 - **PV Minimum Run**: Minimum run time after an automatic PV start (minutes)
 
-### Step 10: Electricity Costs
+### Step 16: Electricity Costs
 - **Electricity Price**: Fixed price (per kWh)
 - **Electricity Price Entity**: Dynamic price entity (overrides fixed price)
 - **Feed-in Tariff**: Fixed export tariff (per kWh)
