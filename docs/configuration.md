@@ -22,7 +22,7 @@ The integration uses a guided wizard (10–11 steps depending on sanitizer mode)
   - Auxiliary power sensor (optional)
 
 ### Step 3: Water Quality Sensors (Optional)
-Configure only if using ESP32 + Blueriiot:
+Configure only when native BlueRiiot reading is disabled:
 - **Water Temperature Sensor**: Current pool water temperature
 - **pH Sensor**: Water pH value (0-14)
 - **Chlorine Sensor**: Redox/ORP value (mV)
@@ -31,7 +31,7 @@ Configure only if using ESP32 + Blueriiot:
 
 ### Step 3b: Sensor Reachability Monitoring (Optional)
 - **Enable sensor reachability monitoring**: shows a diagnostic problem if the configured measurement infrastructure is unavailable
-- **ESP32 device**: optional device that provides the pool measurements; reachable when at least one of its entities is available
+- **ESP32 device**: optional Bluetooth-proxy device; reachable when at least one of its entities is available
 - **Water sensor reachability**: optional binary sensor that is `on` when the water sensor, for example BlueRiiot, is reachable
 
 ### Step 3c: Maintenance Notifications (Optional)

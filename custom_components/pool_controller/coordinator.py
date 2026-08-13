@@ -989,7 +989,12 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
 
         interval, _ = self._blueriiot_interval_for_time(conf, dt_util.now())
         await self._blueriiot_reader.async_read_if_due(
-            address, timedelta(minutes=interval), force=True
+            address,
+            timedelta(minutes=interval),
+            force=True,
+            salt_divisor=float(
+                conf.get(CONF_BLUERIIOT_SALT_DIVISOR, DEFAULT_BLUERIIOT_SALT_DIVISOR)
+            ),
         )
         return self._blueriiot_reader.last_error is None
 
@@ -2434,7 +2439,14 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                 try:
                     blueriiot_interval, blueriiot_night_active = self._blueriiot_interval_for_time(conf, now)
                     blueriiot_reading = await self._blueriiot_reader.async_read_if_due(
-                        str(conf[CONF_BLUERIIOT_MAC]).strip(), timedelta(minutes=blueriiot_interval)
+                        str(conf[CONF_BLUERIIOT_MAC]).strip(),
+                        timedelta(minutes=blueriiot_interval),
+                        salt_divisor=float(
+                            conf.get(
+                                CONF_BLUERIIOT_SALT_DIVISOR,
+                                DEFAULT_BLUERIIOT_SALT_DIVISOR,
+                            )
+                        ),
                     )
                     blueriiot_reading_fresh = bool(
                         blueriiot_reading is not None

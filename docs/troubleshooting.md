@@ -36,9 +36,9 @@ All entity names, buttons, and configuration labels are translated automatically
 
 ## Water quality sensor not updating
 - Confirm Blueriiot sensor in range and powered
-- Check ESP32 WiFi connection and ESPHome status
-- Verify BLE connection in ESP32 logs
-- Try pressing "Start BLE Scan" button on ESP32
+- Check the Home Assistant Bluetooth adapter or proxy can make connections
+- Enable `custom_components.pool_controller` debug logging and check the BlueRiiot read error
+- Check ESPHome WiFi and proxy status only when using an optional ESPHome Bluetooth proxy
 
 ## Support
 

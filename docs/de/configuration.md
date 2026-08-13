@@ -22,7 +22,7 @@ Die Integration nutzt einen geführten Assistenten mit 10 bis 11 Schritten, abh�
   - Zusätzlicher Leistungssensor optional
 
 ### Schritt 3: Wasserqualitätssensoren (optional)
-Nur konfigurieren, wenn du ESP32 plus Blueriiot verwendest:
+Nur konfigurieren, wenn die native BlueRiiot-Auslesung deaktiviert ist:
 - **Wassertemperatursensor**: Aktuelle Pooltemperatur
 - **pH-Sensor**: pH-Wert des Wassers von 0 bis 14
 - **Chlorsensor**: Redox- beziehungsweise ORP-Wert in mV
@@ -31,7 +31,7 @@ Nur konfigurieren, wenn du ESP32 plus Blueriiot verwendest:
 
 ### Schritt 3b: Überwachung der Sensor-Erreichbarkeit (optional)
 - **Sensor-Erreichbarkeit überwachen**: zeigt eine Diagnose-Störung, wenn die konfigurierte Mess-Infrastruktur nicht verfügbar ist
-- **ESP32-Gerät**: optionales Gerät, das die Pool-Messwerte bereitstellt; erreichbar, wenn mindestens eine seiner Entities verfügbar ist
+- **ESP32-Gerät**: optionales Bluetooth-Proxy-Gerät; erreichbar, wenn mindestens eine seiner Entities verfügbar ist
 - **Erreichbarkeit des Wassersensors**: optionaler Binary-Sensor, der `on` ist, wenn der Wassersensor, z. B. BlueRiiot, erreichbar ist
 
 ### Schritt 3c: Wartungsbenachrichtigungen (optional)

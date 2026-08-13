@@ -4,11 +4,11 @@
 
 [← Back to README](../README.md)
 
-## Water Quality Monitoring (ESP32 + Blueriiot)
+## Water Quality Monitoring (BlueRiiot)
 
-### Setting Up the ESP32
+### Native BlueRiiot Reading
 
-The integration works best with a dedicated ESP32 device running ESPHome that bridges your Blueriiot sensor to Home Assistant.
+Pool Controller reads BlueRiiot measurements itself through Home Assistant Bluetooth. No ESP32 firmware, ESPHome `ble_client`, or generated sensor entities are required.
 
 **Why this approach?**
 - Blueriiot app functionality replaced with Home Assistant
@@ -27,41 +27,17 @@ The integration works best with a dedicated ESP32 device running ESPHome that br
 - ⚡ Water Conductivity (µS/cm)
 - 🔋 Battery Level
 
-### ESP32 Configuration Example
+### Setup
 
-See `esphome-blueriiot-example.yaml` in the repository root for a complete working example.
-
-### Recommended: Native Reading via ESPHome Bluetooth Proxy
-
-The preferred setup is `esphome-blueriiot-proxy-example.yaml`. In this profile, ESPHome acts only as a Bluetooth proxy; Pool Controller performs the proprietary BlueRiiot GATT request itself through Home Assistant Bluetooth.
-
-1. Flash `esphome-blueriiot-proxy-example.yaml` to the ESP32 and add the device to the ESPHome integration.
-2. In the Pool Controller setup or options flow, enable **Read BlueRiiot directly** and select the BlueRiiot Bluetooth address. Nearby devices are discovered automatically; a MAC address can still be entered manually.
+1. Ensure Home Assistant has a Bluetooth adapter or a Bluetooth proxy that supports connections.
+2. In the Pool Controller setup or options flow, enable **Read BlueRiiot directly** and select the discovered BlueRiiot device.
 3. Configure the daytime and nighttime intervals. The dashboard and the `Read BlueRiiot now` button can request an immediate reading without bypassing the BLE connection lock.
 
-The proxy profile keeps the display and hardware button, but its display values are supplied by Pool Controller through an ESPHome API action. Consequently, no generated Home Assistant entity IDs need to be maintained in the YAML after an instance-name change.
+The battery percentage is derived from the BlueRiiot raw value. For Plus Salt models, salt uses the default calibration divisor `18`; change the **Salt calibration divisor** only when a reliable reference measurement requires it. Conductivity retains its native conversion.
 
-Do not run the proxy profile and the legacy direct `ble_client` profile for the same BlueRiiot at the same time. The old `esphome-blueriiot-example.yaml` remains available as a direct-ESPHome fallback.
+### Optional ESPHome Bluetooth Proxy
 
-```yaml
-substitutions:
-  name: esp32-5
-  roomname: Garten
-  staticip: 192.168.1.205
-  blueriiot1_mac: '00:A0:50:C7:46:C9'  # Your Blueriiot device MAC
-  blueriiot1_name_prefix: 'whirlpool'
-  blueriiot1_id_prefix: 'p2'
-
-esp32:
-  board: esp32-s3-devkitc-1
-  framework:
-    type: esp-idf
-    version: recommended
-  flash_size: 16MB
-  variant: ESP32S3
-
-# ... rest of config for BLE scanning, display, sensors, etc.
-```
+Use an ESPHome Bluetooth proxy only when the BlueRiiot is out of range of the Home Assistant host. `esphome-blueriiot-proxy-example.yaml` is available as a proxy and display example; it does not read the proprietary GATT protocol itself. Do not run the legacy direct `ble_client` profile and Pool Controller's native reader for the same BlueRiiot at the same time.
 
 ### Sensor Values in Pool Controller
 

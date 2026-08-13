@@ -65,6 +65,17 @@ def _normalize_blueriiot_options(data: dict) -> tuple[dict, dict]:
         return normalized, {CONF_BLUERIIOT_MAC: "invalid_mac"}
 
     normalized[CONF_BLUERIIOT_MAC] = address
+    try:
+        salt_divisor = float(
+            normalized.get(
+                CONF_BLUERIIOT_SALT_DIVISOR, DEFAULT_BLUERIIOT_SALT_DIVISOR
+            )
+        )
+    except (TypeError, ValueError):
+        return normalized, {CONF_BLUERIIOT_SALT_DIVISOR: "invalid_salt_divisor"}
+    if salt_divisor <= 0:
+        return normalized, {CONF_BLUERIIOT_SALT_DIVISOR: "invalid_salt_divisor"}
+    normalized[CONF_BLUERIIOT_SALT_DIVISOR] = salt_divisor
     return normalized, {}
 
 
@@ -149,10 +160,12 @@ def _blueriiot_mac_options(hass, configured_address: str) -> list[dict[str, str]
             str(service_uuid).lower()
             for service_uuid in (getattr(service_info, "service_uuids", None) or [])
         }
+        manufacturer_data = (getattr(service_info, "manufacturer_data", None) or {}).get(305, b"")
         likely_blueriiot = (
             target_service in service_uuids
             or "blueriiot" in name.lower()
             or "blue connect" in name.lower()
+            or manufacturer_data.startswith(b"\x19\x01")
         )
         rssi = getattr(service_info, "rssi", None)
         suffix = f" ({rssi} dBm)" if isinstance(rssi, int) else ""
@@ -193,6 +206,9 @@ def _blueriiot_schema(hass, curr: dict | None = None):
                 custom_value=True,
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
+        ),
+        vol.Optional(CONF_BLUERIIOT_SALT_DIVISOR, default=c.get(CONF_BLUERIIOT_SALT_DIVISOR, DEFAULT_BLUERIIOT_SALT_DIVISOR)): selector.NumberSelector(
+            selector.NumberSelectorConfig(min=1, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX)
         ),
         vol.Optional(CONF_BLUERIIOT_INTERVAL_MINUTES, default=c.get(CONF_BLUERIIOT_INTERVAL_MINUTES, DEFAULT_BLUERIIOT_INTERVAL_MINUTES)): selector.NumberSelector(
             selector.NumberSelectorConfig(min=5, max=120, step=1, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="min")

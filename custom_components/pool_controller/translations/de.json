@@ -82,6 +82,7 @@
                 "data": {
                     "enable_blueriiot": "BlueRiiot direkt auslesen",
                     "blueriiot_mac": "BlueRiiot-Bluetooth-Adresse",
+                    "blueriiot_salt_divisor": "Salz-Kalibrierdivisor",
                     "blueriiot_interval_minutes": "Ausleseintervall tagsüber",
                     "blueriiot_night_interval_minutes": "Ausleseintervall nachts",
                     "blueriiot_night_start": "Nachtbeginn",
@@ -90,6 +91,7 @@
                 "data_description": {
                     "enable_blueriiot": "Bei Aktivierung haben frische BlueRiiot-Messungen Vorrang. Wenn keine frische Messung vorliegt, bleiben die konfigurierten klassischen Sensor-Entities als Fallback erhalten.",
                     "blueriiot_mac": "Nahe Bluetooth-Geräte werden automatisch aufgelistet. Wähle den BlueRiiot aus oder gib seine MAC-Adresse manuell ein, falls er nicht erscheint.",
+                    "blueriiot_salt_divisor": "Standardwert 18 für Blue Connect Plus Salt. Nur mit einer verlässlichen Salzreferenz ändern.",
                     "blueriiot_interval_minutes": "Mindestzeit zwischen direkten Bluetooth-Auslesungen tagsüber.",
                     "blueriiot_night_interval_minutes": "Mindestzeit zwischen direkten Bluetooth-Auslesungen nachts.",
                     "blueriiot_night_start": "Ortszeit, zu der das Nachtintervall beginnt.",
@@ -118,6 +120,7 @@
                 "data": {
                     "enable_blueriiot": "BlueRiiot direkt auslesen",
                     "blueriiot_mac": "BlueRiiot-Bluetooth-Adresse",
+                    "blueriiot_salt_divisor": "Salz-Kalibrierdivisor",
                     "blueriiot_interval_minutes": "Ausleseintervall tagsüber",
                     "blueriiot_night_interval_minutes": "Ausleseintervall nachts",
                     "blueriiot_night_start": "Nachtbeginn",
@@ -529,6 +532,7 @@
                 "data_description": {
                     "enable_blueriiot": "Bei Aktivierung haben BlueRiiot-Werte Vorrang vor den ausgewählten Wasserqualitäts-Entities.",
                     "blueriiot_mac": "Nahe Bluetooth-Geräte werden automatisch aufgelistet. Wähle den BlueRiiot aus oder gib seine MAC-Adresse manuell ein, falls er nicht erscheint.",
+                    "blueriiot_salt_divisor": "Standardwert 18 für Blue Connect Plus Salt. Nur mit einer verlässlichen Salzreferenz ändern.",
                     "blueriiot_interval_minutes": "Mindestzeit zwischen direkten Bluetooth-Auslesungen tagsüber."
                 }
             },

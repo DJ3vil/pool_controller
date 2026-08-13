@@ -2,6 +2,11 @@
 
 All notable changes to this integration are documented in this file.
 
+## [2.14.9] - 2026-08-13
+- Rework of blueriiot integration. Optimized discovery and salt and batterie calculation
+- Updated documentation
+
+
 ## [2.14.8] - 2026-08-09
 - Release update.
 

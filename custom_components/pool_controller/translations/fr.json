@@ -82,6 +82,7 @@
                 "data": {
                     "enable_blueriiot": "Lire BlueRiiot directement",
                     "blueriiot_mac": "Adresse Bluetooth BlueRiiot",
+                    "blueriiot_salt_divisor": "Diviseur d'étalonnage du sel",
                     "blueriiot_interval_minutes": "Intervalle de lecture de jour",
                     "blueriiot_night_interval_minutes": "Intervalle de lecture de nuit",
                     "blueriiot_night_start": "Début de la nuit",
@@ -90,6 +91,7 @@
                 "data_description": {
                     "enable_blueriiot": "Lorsqu'il est activé, les lectures BlueRiiot fraîches sont prioritaires. Si aucune lecture fraîche n'est disponible, les entités de capteurs classiques configurées restent le repli.",
                     "blueriiot_mac": "Les appareils Bluetooth proches sont listés automatiquement. Sélectionnez le BlueRiiot ou saisissez son adresse MAC manuellement s'il n'apparaît pas.",
+                    "blueriiot_salt_divisor": "Valeur par défaut 18 pour Blue Connect Plus Salt. Ne la modifiez qu'avec une mesure de référence fiable.",
                     "blueriiot_interval_minutes": "Temps minimal entre deux lectures Bluetooth directes le jour.",
                     "blueriiot_night_interval_minutes": "Temps minimal entre deux lectures Bluetooth directes la nuit.",
                     "blueriiot_night_start": "Heure locale à laquelle commence l'intervalle de nuit.",
@@ -524,11 +526,13 @@
                 "data": {
                     "enable_blueriiot": "Lire BlueRiiot directement",
                     "blueriiot_mac": "Adresse Bluetooth BlueRiiot",
+                    "blueriiot_salt_divisor": "Diviseur d'étalonnage du sel",
                     "blueriiot_interval_minutes": "Intervalle de lecture de jour"
                 },
                 "data_description": {
                     "enable_blueriiot": "Lorsqu'il est activé, les valeurs BlueRiiot sont prioritaires sur les entités de qualité de l'eau sélectionnées.",
                     "blueriiot_mac": "Les appareils Bluetooth proches sont listés automatiquement. Sélectionnez le BlueRiiot ou saisissez son adresse MAC manuellement s'il n'apparaît pas.",
+                    "blueriiot_salt_divisor": "Valeur par défaut 18 pour Blue Connect Plus Salt. Ne la modifiez qu'avec une mesure de référence fiable.",
                     "blueriiot_interval_minutes": "Temps minimal entre deux lectures Bluetooth directes le jour."
                 }
             },

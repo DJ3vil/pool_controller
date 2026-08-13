@@ -36,9 +36,9 @@ Entitätsnamen, Buttons und Konfigurationsbeschriftungen werden automatisch anha
 
 ## Wasserqualitätssensor aktualisiert nicht
 - Prüfe, ob der Blueriiot-Sensor in Reichweite ist und Strom hat.
-- Prüfe WLAN-Verbindung und ESPHome-Status des ESP32.
-- Prüfe die BLE-Verbindung in den ESP32-Logs.
-- Starte bei Bedarf den Button **Start BLE Scan** auf dem ESP32.
+- Prüfe, ob der Bluetooth-Adapter oder -Proxy von Home Assistant Verbindungen aufbauen kann.
+- Aktiviere Debug-Logs für `custom_components.pool_controller` und prüfe den BlueRiiot-Lesefehler.
+- Prüfe WLAN und ESPHome-Status nur, wenn ein optionaler ESPHome-Bluetooth-Proxy eingesetzt wird.
 
 ## Support
 

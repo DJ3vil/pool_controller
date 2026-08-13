@@ -82,6 +82,7 @@
         "data": {
           "enable_blueriiot": "Read BlueRiiot directly",
           "blueriiot_mac": "BlueRiiot Bluetooth address",
+          "blueriiot_salt_divisor": "Salt calibration divisor",
           "blueriiot_interval_minutes": "Daytime reading interval",
           "blueriiot_night_interval_minutes": "Nighttime reading interval",
           "blueriiot_night_start": "Nighttime starts",
@@ -90,6 +91,7 @@
         "data_description": {
           "enable_blueriiot": "When enabled, fresh BlueRiiot reads take priority. If no fresh read is available, the configured classic sensor entities remain the fallback.",
           "blueriiot_mac": "Nearby Bluetooth devices are listed automatically. Select the BlueRiiot device, or enter its MAC address manually if it is not listed.",
+          "blueriiot_salt_divisor": "Default 18 for Blue Connect Plus Salt. Change only with a reliable salt reference measurement.",
           "blueriiot_interval_minutes": "Minimum time between direct Bluetooth readings during the day.",
           "blueriiot_night_interval_minutes": "Minimum time between direct Bluetooth readings at night.",
           "blueriiot_night_start": "Local time at which the nighttime interval starts.",
@@ -524,11 +526,13 @@
         "data": {
           "enable_blueriiot": "Read BlueRiiot directly",
           "blueriiot_mac": "BlueRiiot Bluetooth address",
+          "blueriiot_salt_divisor": "Salt calibration divisor",
           "blueriiot_interval_minutes": "Reading interval"
         },
         "data_description": {
           "enable_blueriiot": "When enabled, BlueRiiot values take priority over the selected water-quality sensor entities.",
           "blueriiot_mac": "Nearby Bluetooth devices are listed automatically. Select the BlueRiiot device, or enter its MAC address manually if it is not listed.",
+          "blueriiot_salt_divisor": "Default 18 for Blue Connect Plus Salt. Change only with a reliable salt reference measurement.",
           "blueriiot_interval_minutes": "Minimum time between direct Bluetooth readings."
         }
       },

@@ -14,10 +14,11 @@
    - Outdoor temperature (for frost protection)
 
 ### For Water Quality Monitoring (Optional but Recommended)
-1. **ESP32 Microcontroller** (e.g., ESP32-S3-DevKitC-1)
-2. **Blueriiot Sensor** ([Blue Connect GO](https://www.blueriiot.com/eu-en/products/blue-connect-go))
+1. **Blueriiot Sensor** ([Blue Connect GO](https://www.blueriiot.com/eu-en/products/blue-connect-go))
    - Measures: Temperature, pH, ORP (Chlorine), Salt, Conductivity, Battery
-3. **ESPHome Configuration** (provided as reference)
+2. **Home Assistant Bluetooth adapter or connection-capable Bluetooth proxy**
+
+An ESP32 with ESPHome is optional as a Bluetooth proxy when the device is out of range. Pool Controller reads BlueRiiot data directly; no custom ESPHome BLE configuration is required.
 
 ### For Auxiliary Heating (Optional)
 - Secondary smart switch controlling auxiliary heater
@@ -29,7 +30,7 @@ This is the setup I’m running Pool Controller with (as a concrete reference/ex
 - Softub Poseidon X
 - Connected via Zigbee smart plug (ZHA)
 - Blueriiot Blue Connect Go for the measurements
-- ESP32 to read the Blueriiot data
+- Home Assistant Bluetooth proxy near the Blueriiot
 - 2500 W immersion heater as auxiliary heating
 - Immersion heater connected via Zigbee smart plug
 

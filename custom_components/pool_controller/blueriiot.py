@@ -42,7 +42,12 @@ class BlueRiiotReader:
         self._lock = asyncio.Lock()
 
     async def async_read_if_due(
-        self, address: str, minimum_interval: timedelta, *, force: bool = False
+        self,
+        address: str,
+        minimum_interval: timedelta,
+        *,
+        force: bool = False,
+        salt_divisor: float = 18.0,
     ) -> BlueRiiotReading | None:
         """Read once when due, or immediately when explicitly requested."""
         normalized_address = address.upper()
@@ -62,6 +67,9 @@ class BlueRiiotReader:
             if not force and self._last_attempt and now - self._last_attempt < minimum_interval:
                 return self.reading
             self._last_attempt = now
+            if salt_divisor <= 0:
+                self.last_error = "invalid_salt_divisor"
+                return self.reading
 
             device = bluetooth.async_ble_device_from_address(
                 self._hass, normalized_address, connectable=True
@@ -88,7 +96,7 @@ class BlueRiiotReader:
                     COMMAND_CHARACTERISTIC_UUID, b"\x01", response=True
                 )
                 payload = await asyncio.wait_for(notification, timeout=20)
-                self.reading = self._decode(payload)
+                self.reading = self._decode(payload, salt_divisor=salt_divisor)
                 self.last_success = dt_util.now()
                 self.last_error = None
             except asyncio.TimeoutError:
@@ -111,19 +119,22 @@ class BlueRiiotReader:
         )
 
     @staticmethod
-    def _decode(payload: bytes) -> BlueRiiotReading:
+    def _decode(payload: bytes, *, salt_divisor: float = 18.0) -> BlueRiiotReading:
         if len(payload) < 12:
             raise ValueError(f"incomplete_payload_{len(payload)}")
 
         def _int16(offset: int) -> int:
             return int.from_bytes(payload[offset : offset + 2], "little", signed=True)
 
+        if salt_divisor <= 0:
+            raise ValueError("invalid_salt_divisor")
         raw_ph = float(_int16(3))
+        raw_salt = _int16(7)
         return BlueRiiotReading(
             temperature=_int16(1) / 100.0,
             ph=(2048.0 - raw_ph) / 232.0 + 7.0,
             orp=_int16(5) / 3.86 - 21.57826,
-            salt=_int16(7) / 25.0,
+            salt=raw_salt / salt_divisor,
             conductivity=_int16(9) / 4.134,
-            battery=float(payload[11]),
+            battery=min(100.0, max(0.0, payload[11] / 36.0 * 100.0)),
         )
