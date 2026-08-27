@@ -4,11 +4,11 @@
 
 [← Back to README](../README.md)
 
-## Water Quality Monitoring (ESP32 + Blueriiot)
+## Water Quality Monitoring (BlueRiiot)
 
-### Setting Up the ESP32
+### Native BlueRiiot Reading
 
-The integration works best with a dedicated ESP32 device running ESPHome that bridges your Blueriiot sensor to Home Assistant.
+Pool Controller reads BlueRiiot measurements itself through Home Assistant Bluetooth. No ESP32 firmware, ESPHome `ble_client`, or generated sensor entities are required.
 
 **Why this approach?**
 - Blueriiot app functionality replaced with Home Assistant
@@ -27,29 +27,17 @@ The integration works best with a dedicated ESP32 device running ESPHome that br
 - ⚡ Water Conductivity (µS/cm)
 - 🔋 Battery Level
 
-### ESP32 Configuration Example
+### Setup
 
-See `esphome-blueriiot-example.yaml` in the repository root for a complete working example.
+1. Ensure Home Assistant has a Bluetooth adapter or a Bluetooth proxy that supports connections.
+2. In the Pool Controller setup or options flow, enable **Read BlueRiiot directly** and select the discovered BlueRiiot device.
+3. Configure the daytime and nighttime intervals. The dashboard and the `Read BlueRiiot now` button can request an immediate reading without bypassing the BLE connection lock.
 
-```yaml
-substitutions:
-  name: esp32-5
-  roomname: Garten
-  staticip: 192.168.1.205
-  blueriiot1_mac: '00:A0:50:C7:46:C9'  # Your Blueriiot device MAC
-  blueriiot1_name_prefix: 'whirlpool'
-  blueriiot1_id_prefix: 'p2'
+The battery percentage is derived from the BlueRiiot raw value. For Plus Salt models, salt uses the default calibration divisor `18`; change the **Salt calibration divisor** only when a reliable reference measurement requires it. Conductivity retains its native conversion.
 
-esp32:
-  board: esp32-s3-devkitc-1
-  framework:
-    type: esp-idf
-    version: recommended
-  flash_size: 16MB
-  variant: ESP32S3
+### Optional ESPHome Bluetooth Proxy
 
-# ... rest of config for BLE scanning, display, sensors, etc.
-```
+Use an ESPHome Bluetooth proxy only when the BlueRiiot is out of range of the Home Assistant host. `esphome-blueriiot-proxy-example.yaml` is available as a proxy and display example; it does not read the proprietary GATT protocol itself. Do not run the legacy direct `ble_client` profile and Pool Controller's native reader for the same BlueRiiot at the same time.
 
 ### Sensor Values in Pool Controller
 
@@ -57,9 +45,18 @@ Once configured, the integration automatically:
 - ✅ Recommends pH adjustments (pH-, pH+)
 - ✅ Recommends chlorine dosing
 - ✅ Monitors TDS and recommends water changes
-- ✅ Flags low chlorine (ORP < 400mV)
+- ✅ Flags low chlorine (ORP < 550 mV by default; critical below 400 mV)
 - ✅ Flags pH out of range
 - ✅ Displays all metrics in sensors
+
+The ORP and pH thresholds can be adjusted for the water-treatment setup in the **Chemistry estimation** configuration step.
+
+### Dashboard water-quality card
+
+In the dashboard card editor, select **Water quality** to choose which pH, ORP/chlorine, salt, TDS and alkalinity
+scales are displayed. The pH and ORP display ranges can be narrowed to make everyday measurements easier to read.
+The configured backend warning and critical thresholds are shown as lines on the pH and ORP scales; they remain
+authoritative for the water-safety assessment.
 
 This chapter also documents the integration’s **maintenance recommendation sensors** and the (best-effort) calculations
 behind them (pH, chlorine/ORP, salt, TDS/water change).

@@ -6,36 +6,60 @@
 
 ## Konfigurationsassistent
 
-Die Integration nutzt einen geführten Assistenten mit 10 bis 11 Schritten, abhängig vom gewählten Desinfektionsmodus.
+Die Integration nutzt einen geführten Assistenten mit 15 Schritten, bei Salzwasser oder Mischbetrieb mit 16 Schritten.
 
-### Schritt 1: Grundinformationen
+### Schritt 1: Basis & Desinfektion
 - **Name**: Anzeigename für deinen Pool, z. B. Whirlpool Demo
 - **Wasservolumen**: Literzahl des Wassers, wichtig für pH- und Chlorberechnungen
 - **Demo-Modus**: Aktivieren, um ohne echte Geräte zu testen
+- **Desinfektionsmodus**: `chlorine`, `saltwater` oder `mixed` für Salz plus Chlor
+- **Chlorprodukt**: Hauptsächlich verwendetes Mittel für die Chlordosierung. Salzwasser verwendet automatisch das Profil der Salzelektrolyse-Zelle.
+- **Ziel-Salzgehalt in g/L**: Zielwert für Salzwasser- oder Mischbetrieb.
 
-### Schritt 2: Schalter und Leistungssensoren
+### Schritt 2: Schalter & Leistung
 - **Hauptschalter**: Stromversorgung oder Hauptrelais, erforderlich
 - **Pumpenschalter**: Umwälzpumpe, optional; wenn leer, nutzt die Integration den Hauptschalter
 - **Schalter für Zusatzheizung**: Optionaler zweiter Heizschalter
 - **Leistungssensoren**:
   - Hauptleistungssensor in Watt für Laufzeitdiagnosen, Stromsparlogik und Kosten
   - Zusätzlicher Leistungssensor optional
+- **Basis-/Zusatzheizleistung**: Nennleistungen für die Schätzung der Vorheizzeit.
 
-### Schritt 3: Wasserqualitätssensoren (optional)
-Nur konfigurieren, wenn du ESP32 plus Blueriiot verwendest:
+### Schritt 3: Mess-Infrastruktur
+- **BlueRiiot direkt auslesen**: Aktiviert den integrierten Bluetooth-Leser. Nahe Geräte werden automatisch aufgelistet; alternativ kann eine MAC-Adresse manuell eingetragen werden.
+- **Salz-Kalibrierdivisor**: Standardwert `18` für Blue Connect Plus Salt. Nur nach Vergleich mit einer verlässlichen Referenzmessung ändern.
+- **Ausleseintervall tagsüber/nachts**: Mindestabstand zwischen Messungen sowie konfigurierbare Start- und Endzeit der Nacht.
+- **Sensor-Erreichbarkeit überwachen**: Aktiviert Diagnosen für eine externe Messinfrastruktur. Bei aktivierter direkter BlueRiiot-Auslesung werden ESP32- und Wassersensor-Überwachung nicht konfiguriert.
+- **ESP32-Gerät**: Optionales Bluetooth-Proxy- oder externes Messgerät; erreichbar, wenn mindestens eine seiner Entities verfügbar ist.
+- **Erreichbarkeit des Wassersensors**: Optionaler Binary-Sensor, der `on` ist, solange der Wassersensor erreichbar ist.
+
+### Schritt 4: Wasserqualität
+Bei aktivierter direkter BlueRiiot-Auslesung löscht Pool Controller diese externen Sensorzuordnungen und verwendet die eigenen Messwerte. Andernfalls konfigurieren:
 - **Wassertemperatursensor**: Aktuelle Pooltemperatur
 - **pH-Sensor**: pH-Wert des Wassers von 0 bis 14
 - **Chlorsensor**: Redox- beziehungsweise ORP-Wert in mV
 - **Salzsensor**: Salzkonzentration in g/L, optional
 - **Leitfähigkeitssensor**: µS/cm, optional
+- **ORP-Warn- und kritische Schwelle**: Grenzwerte für die Wasserqualitätsdiagnose
+- **Minimaler/maximaler pH-Wert**: Akzeptierter pH-Bereich für die Wasserqualitätsdiagnose
 
-### Schritt 4: Desinfektion
+### Schritt 5: Wartungsbenachrichtigungen
+- **Handy**: Einen vorhandenen Dienst der Home-Assistant-Companion-App (`notify.mobile_app_*`) auswählen, zum Beispiel dein iPhone. Deaktiviert lassen, um keine Push-Benachrichtigungen zu senden.
+- **Bei nicht erreichbarem Sensor informieren**: sendet eine Nachricht, wenn das konfigurierte ESP32 oder der Wassersensor nicht mehr erreichbar ist.
+- **Über Wasserqualität informieren**: sendet eine Nachricht bei `critical` oder `urgent` TDS sowie bei Alkalinität außerhalb des empfohlenen Bereichs.
+
+Ein Alarm wird nur beim Eintritt in den Zustand versendet und nicht durch den normalen 30-Sekunden-Zyklus wiederholt. Nach einer Entwarnung erzeugt ein späteres erneutes Auftreten wieder eine Nachricht. Ist der gewählte Handy-Dienst vorübergehend nicht verfügbar, wird der Alarm nachgeholt, sobald der Dienst wieder verfügbar ist.
+
+### Schritt 6: Desinfektion
 Pool Controller unterstützt mehrere Desinfektionsarten und passt Teile der Wasserqualitätsbewertung entsprechend an.
 
 - **Desinfektionsmodus**: `chlorine`, `saltwater` oder `mixed` für Salz plus Chlor
-- **Schritt 4b nur für Saltwater oder Mixed**: **Ziel-Salzgehalt in g/L** als Basis für die effektive TDS-Bewertung
+- **Desinfektionsprodukt**: Dichlor, Trichlor, Calciumhypochlorit, Flüssigchlor, Salzelektrolyse-Zelle oder andere. Salzwasser verwendet automatisch das Profil der Salzelektrolyse-Zelle.
 
-### Schritt 4c: Chemie-Schätzung (einfaches Tuning)
+### Schritt 7: Ziel-Salzgehalt (nur Saltwater oder Mixed)
+- **Ziel-Salzgehalt in g/L**: Basis für die effektive TDS-Bewertung.
+
+### Schritt 8: Alkalinitäts-Berechnung
 
 Dieser Schritt hält Chemie-Empfehlungen praxistauglich, ohne zu viele Expertenparameter offenzulegen.
 
@@ -47,7 +71,7 @@ Dieser Schritt hält Chemie-Empfehlungen praxistauglich, ohne zu viele Expertenp
 
 Für die meisten Installationen reichen die Standardwerte aus.
 
-### Schritt 5: Temperaturregelung (Thermostat)
+### Schritt 9: Temperaturregelung
 - **Zieltemperatur**: Gewünschte Wassertemperatur, wird gespeichert
 - **Abwesenheitstemperatur**: Zieltemperatur bei aktivem Away-Modus
 - **Min/Max/Schrittweite**: Grenzen für die Thermostat-Oberfläche
@@ -58,11 +82,17 @@ Für die meisten Installationen reichen die Standardwerte aus.
 - beendet manuelle Timer und Pause
 - lässt automatische Filterung und Frostschutz aktiv
 
-### Schritt 6: Frostschutz
+### Schritt 10: Dynamische Zieltemperatur
+- **Dynamische Zieltemperatur aktivieren**: Passt die Thermostat-Zieltemperatur anhand von Jahreszeit und Wetter an.
+- **Weather-Entity**: Quelle für die wetterbasierte Anpassung.
+- **Saisonale Offsets**: Offsets für Winter, Frühling, Sommer und Herbst.
+- **Minimaler/maximaler Offset, Wetterlimit, Gewichtungen, Glättung und maximale Stundenänderung**: Begrenzen und stabilisieren die berechnete Zieltemperatur.
+
+### Schritt 11: Frostschutz
 - **Außentemperatursensor**: Grundlage für die Frostschutzlogik
 - **Frostschutz-Tuning** optional: Duty-Cycle-Einstellungen und eine Notfallgrenze für Ruhezeiten
 
-### Schritt 7: Kalender und Ruhezeiten
+### Schritt 12: Kalender & Ruhezeiten
 - **Pool-Kalender**: Kalender-Entität für den Betriebsplan
 - **Feiertagskalender**: lokale Feiertage werden wie Wochenenden behandelt
 - **Weather Guard optional**:
@@ -82,7 +112,7 @@ pool_controller:
   event_rain_probability: 60
 ```
 
-### Schritt 8: Filtereinstellungen
+### Schritt 13: Filter-Einstellungen
 - **Automatische Filterung**: automatische Filterzyklen ein- oder ausschalten
 - **Filterintervall**: Minuten zwischen automatischen Filterzyklen, Standard 720 gleich 12 Stunden
 - **Filterdauer**: Standardlaufzeit eines Zyklus in Minuten
@@ -93,8 +123,13 @@ pool_controller:
 - **Credit Sources**: Welche Laufgründe als Gutschrift zählen dürfen, z. B. Filter, Baden, Chlor, Vorheizen, PV, Frost oder Thermostat
 - **Deadline-Stunde im Stromsparmodus**: Uhrzeit von 0 bis 23, ab der verschobene Filterläufe spätestens gestartet werden, Standard 16
 
-### Schritt 9: PV-Solarintegration
+### Schritt 14: Dauern
+- **Badedauer**: Standarddauer einer manuellen Badesitzung.
+- **Schnellchlorung Dauer**: Standarddauer eines manuellen Chlor-Boosts.
+
+### Schritt 15: PV-Leistung
 - **PV-Überschusssensor**: Entität für überschüssige Solarleistung in Watt
+- **Hauslastsensor**: Optionaler Live-Leistungssensor des Haushalts für Stromsparentscheidungen.
 - **Faktor für Stromspar-Schwellenwerte in Prozent**: Multiplikator für die Einschaltstufen im Stromsparmodus, Standard 105 Prozent
   - `100%`: Start bei geschätztem Poolbedarf
   - `>100%`: konservativer, lässt PV-Reserve für andere Verbraucher
@@ -106,7 +141,7 @@ pool_controller:
 - **PV-Stabilitätsfenster**: wie lange der geglättete Wert stabil bleiben muss, bevor ein Zustandswechsel erlaubt ist
 - **PV-Minimum-Run**: Mindestlaufzeit nach einem automatischen PV-Start in Minuten
 
-### Schritt 10: Stromkosten
+### Schritt 16: Stromkosten
 - **Strompreis**: fester Preis pro kWh
 - **Entität für Strompreis**: dynamische Preis-Entität, überschreibt den festen Preis
 - **Einspeisevergütung**: fester Vergütungssatz pro kWh

@@ -18,6 +18,9 @@ Entity IDs depend on your instance name, but the integration uses stable suffix 
 | `binary_sensor.<pool>_away_active` | Away mode active |
 | `binary_sensor.<pool>_power_saving_active` | Power-saving mode active |
 | `binary_sensor.<pool>_power_saving_available` | Power-saving mode available (required sensors/signals present) |
+| `binary_sensor.<pool>_sensor_health_problem` | Sensor reachability monitoring detected a problem |
+| `binary_sensor.<pool>_sensor_health_esp32_reachable` | Configured ESP32 device is reachable |
+| `binary_sensor.<pool>_sensor_health_water_sensor_reachable` | Configured water sensor reachability binary sensor is on |
 | `binary_sensor.<pool>_should_main_on` | Power supply should be on |
 | `binary_sensor.<pool>_should_pump_on` | Circulation pump should be on |
 | `binary_sensor.<pool>_main_switch_on` | Physical main switch is currently ON (mirrors the configured external switch state) |
@@ -27,6 +30,7 @@ Entity IDs depend on your instance name, but the integration uses stable suffix 
 | `binary_sensor.<pool>_low_chlor` | Chlorine below recommended level |
 | `binary_sensor.<pool>_ph_alert` | pH outside acceptable range |
 | `binary_sensor.<pool>_tds_high` | TDS too high (water change needed) |
+| `binary_sensor.<pool>_water_safety_risk` | Combined pH/ORP spoilage risk is warning or critical |
 | `binary_sensor.<pool>_event_rain_blocked` | True when the next/ongoing calendar event is blocked due to rain probability |
 
 ## Sensors (Numeric & Status)
@@ -36,6 +40,8 @@ Entity IDs depend on your instance name, but the integration uses stable suffix 
 | `sensor.<pool>_status` | Enum | Current state: `normal`, `paused`, `frost_protection`, `maintenance`, `away`, `power_saving` |
 | `sensor.<pool>_run_reason` | Enum | Why the pool is running right now: `idle`, `bathing`, `chlorine`, `filter`, `preheat`, `pv`, `frost`, `pause`, `maintenance`, `power_saving` |
 | `sensor.<pool>_heat_reason` | Enum | Why heating is allowed/active: `off`, `disabled`, `bathing`, `preheat`, `pv`, `power_saving` |
+| `sensor.<pool>_sensor_health_status` | Enum | Optional sensor reachability status: `disabled`, `unknown`, `ok`, `problem` |
+| `sensor.<pool>_sensor_health_message` | Enum | Detail for sensor reachability, e.g. `water_sensor_unreachable` |
 | `sensor.<pool>_run_credit_source` | Enum | Current credit source (if a streak is active) |
 | `sensor.<pool>_run_credit_minutes` | Integer | Minutes credited from the current streak |
 | `sensor.<pool>_filter_credit_minutes` | Integer | Effective filter credit minutes |
@@ -60,6 +66,8 @@ Entity IDs depend on your instance name, but the integration uses stable suffix 
 | `sensor.<pool>_heat_startup_offset_minutes` | Float | Learned heating startup delay (minutes) |
 | `sensor.<pool>_sanitizer_mode` | Enum | Disinfection style: `chlorine`, `saltwater`, `mixed` |
 | `sensor.<pool>_tds_status` | Enum | Water quality assessment (backend-derived) |
+| `sensor.<pool>_water_safety_status` | Enum | Combined pH/ORP safety status: `unknown`, `ok`, `warning`, `critical` |
+| `sensor.<pool>_water_safety_reason` | Enum | Reason for safety status: `missing_data`, `ok`, `very_low_orp`, `high_ph_low_orp`, `low_orp`, `ph_out_of_range` |
 | `sensor.<pool>_ph_val` | Float | Water pH (0-14) |
 | `sensor.<pool>_chlor_val` | Float | Chlorine/ORP in mV |
 | `sensor.<pool>_salt_val` | Float | Salt concentration in g/L (optional) |
@@ -85,10 +93,6 @@ Entity IDs depend on your instance name, but the integration uses stable suffix 
 | `sensor.<pool>_frost_timer_mins` | Integer | Remaining minutes of the active frost cycle (if any). Attributes: `active`, `duration_minutes` |
 | `sensor.<pool>_pv_power` | Float | PV power (W) derived from the configured PV sensor |
 | `sensor.<pool>_pv_smoothed` | Float | Smoothed PV power (W) used for PV hysteresis |
-| `sensor.<pool>_pv_band_low` | Float | PV power in low band (≤ OFF threshold) |
-| `sensor.<pool>_pv_band_mid_on` | Float | PV power in mid band while PV is allowed (ON state) |
-| `sensor.<pool>_pv_band_mid_off` | Float | PV power in mid band while PV is not allowed (OFF state) |
-| `sensor.<pool>_pv_band_high` | Float | PV power in high band (≥ ON threshold) |
 | `sensor.<pool>_pv_on_threshold` | Integer | Configured PV ON threshold (W) |
 | `sensor.<pool>_pv_off_threshold` | Integer | Configured PV OFF threshold (W) |
 | `sensor.<pool>_main_power` | Float | Main pump power consumption (W) |
@@ -153,6 +157,8 @@ The integration provides four quick-action buttons (one per topic, using the def
 - `sensor.pool_next_event` - Next calendar event
 - `sensor.pool_run_reason` - Why the pool is running (idle/bathing/filter/chlorine/preheat/pv/frost/boost/manual/...)
 - `sensor.pool_heat_reason` - Why heating is allowed (off/disabled/bathing/preheat/pv/boost)
+- `sensor.pool_sensor_health_status` - Optional reachability status for ESP32 / water sensor monitoring
+- `binary_sensor.pool_sensor_health_problem` - Problem flag for measurement infrastructure reachability
 - `sensor.pool_run_credit_source` - Current credit source (if any)
 - `sensor.pool_run_credit_minutes` - Current credited minutes
 - `sensor.pool_filter_credit_minutes` - Effective filter credit

@@ -4,11 +4,11 @@
 
 [← Zurück zur README](../../README.de.md)
 
-## Wasserqualitätsüberwachung mit ESP32 und Blueriiot
+## Wasserqualitätsüberwachung mit BlueRiiot
 
-### ESP32 einrichten
+### Native BlueRiiot-Auslesung
 
-Die Integration funktioniert am besten mit einem dedizierten ESP32, auf dem ESPHome läuft und der den Blueriiot-Sensor an Home Assistant weiterreicht.
+Pool Controller liest BlueRiiot-Messwerte selbst über Home-Assistant-Bluetooth aus. Weder eine ESP32-Firmware, ein ESPHome-`ble_client` noch erzeugte Sensor-Entitäten sind erforderlich.
 
 **Warum dieser Ansatz sinnvoll ist:**
 - Die Funktionen der Blueriiot-App werden durch Home Assistant ersetzt.
@@ -27,29 +27,17 @@ Die Integration funktioniert am besten mit einem dedizierten ESP32, auf dem ESPH
 - Wasserleitfähigkeit in µS/cm
 - Batteriestand
 
-### Beispielkonfiguration für ESP32
+### Einrichtung
 
-Ein vollständiges Referenzbeispiel liegt im Repository-Stamm als `esphome-blueriiot-example.yaml`.
+1. Sicherstellen, dass Home Assistant einen Bluetooth-Adapter oder einen verbindungsfähigen Bluetooth-Proxy hat.
+2. Im Einrichtungs- oder Optionsassistenten von Pool Controller **BlueRiiot direkt auslesen** aktivieren und das erkannte Gerät auswählen.
+3. Ausleseintervalle für Tag und Nacht festlegen. Die Dashboard-Karte und der Button **BlueRiiot jetzt auslesen** können eine sofortige Messung anstoßen, ohne die BLE-Verbindungssperre zu umgehen.
 
-```yaml
-substitutions:
-  name: esp32-5
-  roomname: Garten
-  staticip: 192.168.1.205
-  blueriiot1_mac: '00:A0:50:C7:46:C9'
-  blueriiot1_name_prefix: 'whirlpool'
-  blueriiot1_id_prefix: 'p2'
+Der Batteriestand wird aus dem BlueRiiot-Rohwert berechnet. Für Plus-Salt-Modelle verwendet Salz den Standard-Kalibrierdivisor `18`; den **Salz-Kalibrierdivisor** nur mit einer verlässlichen Referenzmessung ändern. Die Umrechnung der Leitfähigkeit bleibt unverändert.
 
-esp32:
-  board: esp32-s3-devkitc-1
-  framework:
-    type: esp-idf
-    version: recommended
-  flash_size: 16MB
-  variant: ESP32S3
+### Optionaler ESPHome-Bluetooth-Proxy
 
-# ... weiterer Teil für BLE-Scanning, Display, Sensoren usw.
-```
+Einen ESPHome-Bluetooth-Proxy nur einsetzen, wenn der BlueRiiot außerhalb der Reichweite des Home-Assistant-Hosts liegt. `esphome-blueriiot-proxy-example.yaml` bleibt als Proxy- und Display-Beispiel verfügbar, liest das proprietäre GATT-Protokoll jedoch nicht selbst. Das alte direkte `ble_client`-Profil und der native Leser von Pool Controller dürfen nicht gleichzeitig für denselben BlueRiiot laufen.
 
 ### Sensorwerte im Pool Controller
 
@@ -57,9 +45,18 @@ Nach der Konfiguration übernimmt die Integration automatisch:
 - Empfehlungen für pH-Korrekturen mit pH-Minus und pH-Plus
 - Empfehlungen für Chlordosierung
 - TDS-Überwachung und Wasserwechsel-Empfehlungen
-- Warnung bei niedrigem Chlor, typischerweise ORP kleiner 400 mV
+- Warnung bei niedrigem Chlor, standardmäßig ORP kleiner 550 mV; kritisch unter 400 mV
 - Warnung bei pH außerhalb des Zielbereichs
 - Anzeige aller Messwerte als Sensoren
+
+Die ORP- und pH-Schwellen lassen sich im Konfigurationsdialog unter **Chemie-Schätzung** an die eingesetzte Wasserpflege anpassen.
+
+### Wasserqualitätskarte im Dashboard
+
+Im Editor der Dashboard-Karte lässt sich unter **Wasserqualität** auswählen, welche Skalen für pH, ORP/Chlor, Salz,
+TDS und Alkalinität angezeigt werden. Die Sichtbereiche für pH und ORP können eingegrenzt werden, damit die üblichen
+Messwerte besser lesbar sind. Die im Backend konfigurierten Warn- und Kritisch-Schwellen erscheinen als Linien auf den
+pH- und ORP-Skalen und bleiben für die Wasser-Sicherheitsbewertung maßgeblich.
 
 Dieses Kapitel dokumentiert außerdem die **Wartungs- und Empfehlungssensoren** der Integration sowie die zugrunde liegenden Heuristiken für pH, Chlor oder ORP, Salz sowie TDS und Wasserwechsel.
 

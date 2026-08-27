@@ -14,6 +14,14 @@ from .const import (
     CONF_PV_OFF_THRESHOLD,
     DEFAULT_PV_ON,
     DEFAULT_PV_OFF,
+    CONF_WATER_SAFETY_ORP_WARNING_MV,
+    CONF_WATER_SAFETY_ORP_CRITICAL_MV,
+    CONF_WATER_SAFETY_PH_MIN,
+    CONF_WATER_SAFETY_PH_MAX,
+    DEFAULT_WATER_SAFETY_ORP_WARNING_MV,
+    DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV,
+    DEFAULT_WATER_SAFETY_PH_MIN,
+    DEFAULT_WATER_SAFETY_PH_MAX,
 )
 
 
@@ -26,6 +34,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
         PoolStatusSensor(coordinator),
         PoolRunReasonSensor(coordinator),
         PoolHeatReasonSensor(coordinator),
+        PoolTextSensor(coordinator, "sensor_health_status", None),
+        PoolTextSensor(coordinator, "sensor_health_message", None),
+        PoolTextSensor(coordinator, "blueriiot_error", None),
+        PoolTimeSensor(coordinator, "blueriiot_last_success", None),
+        PoolChemSensor(coordinator, "blueriiot_battery", None, "%", "mdi:battery", device_class=SensorDeviceClass.BATTERY, state_class=SensorStateClass.MEASUREMENT, entity_category=EntityCategory.DIAGNOSTIC),
         PoolTextSensor(coordinator, "run_credit_source", None),
         PoolChemSensor(coordinator, "run_credit_minutes", None, "min", "mdi:timer-sand", state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
         PoolChemSensor(coordinator, "filter_credit_minutes", None, "min", "mdi:timer-sand", state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
@@ -61,6 +74,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         PoolChemSensor(coordinator, "salt_val", None, "g/L", "mdi:shaker"),
         PoolChemSensor(coordinator, "tds_val", None, "ppm", "mdi:water-opacity"),
         PoolChemSensor(coordinator, "tds_effective", None, "ppm", "mdi:water-opacity"),
+        PoolTextSensor(coordinator, "water_safety_status", None),
+        PoolTextSensor(coordinator, "water_safety_reason", None),
         PoolChemSensor(coordinator, "alkalinity_estimated_ppm", None, "ppm", "mdi:flask-round-bottom", state_class=SensorStateClass.MEASUREMENT),
         PoolChemSensor(coordinator, "alkalinity_status", None, None, "mdi:water-check", state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
         PoolChemSensor(coordinator, "alkalinity_action", None, None, "mdi:clipboard-check", state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
@@ -70,9 +85,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
         PoolChemSensor(coordinator, "alkalinity_steps", None, None, "mdi:format-list-numbered", state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
         PoolChemSensor(coordinator, "alkalinity_wait_minutes", None, "min", "mdi:timer-sand", state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
         PoolChemSensor(coordinator, "alkalinity_water_change_percent", None, "%", "mdi:water-sync", state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
-        # Recommendations (not measurements): keep units but do not set state_class.
-        PoolChemSensor(coordinator, "alkalinity_plus_g", None, "g", "mdi:beaker-plus", device_class=SensorDeviceClass.WEIGHT, state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
-        PoolChemSensor(coordinator, "alkalinity_minus_g", None, "g", "mdi:beaker-minus", device_class=SensorDeviceClass.WEIGHT, state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
         PoolChemSensor(coordinator, "salt_add_g", None, "g", "mdi:shaker", device_class=SensorDeviceClass.WEIGHT, state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
         PoolChemSensor(coordinator, "tds_water_change_liters", None, "L", "mdi:water-sync", device_class=SensorDeviceClass.VOLUME, state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
         PoolChemSensor(coordinator, "tds_water_change_percent", None, "%", "mdi:water-percent", state_class=None, entity_category=EntityCategory.DIAGNOSTIC),
@@ -112,10 +124,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
         PoolPowerSensor(coordinator, "pv_smoothed", None),
         PoolPowerSensor(coordinator, "power_saving_pump_threshold", None),
         PoolPowerSensor(coordinator, "power_saving_aux_threshold", None),
-        PoolPowerSensor(coordinator, "pv_band_low", None),
-        PoolPowerSensor(coordinator, "pv_band_mid_on", None),
-        PoolPowerSensor(coordinator, "pv_band_mid_off", None),
-        PoolPowerSensor(coordinator, "pv_band_high", None),
         PoolPowerSensor(coordinator, "main_power", None),
         PoolPowerSensor(coordinator, "aux_power", None),
         PoolPowerSensor(coordinator, "power", None),
@@ -130,6 +138,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
             PoolConfigSensor(coordinator, CONF_BATH_DURATION, DEFAULT_BATH_MINUTES, None),
             PoolConfigSensor(coordinator, CONF_PV_ON_THRESHOLD, DEFAULT_PV_ON, None, unit="W", icon="mdi:flash"),
             PoolConfigSensor(coordinator, CONF_PV_OFF_THRESHOLD, DEFAULT_PV_OFF, None, unit="W", icon="mdi:flash"),
+            PoolConfigSensor(coordinator, CONF_WATER_SAFETY_ORP_WARNING_MV, DEFAULT_WATER_SAFETY_ORP_WARNING_MV, None, unit="mV", icon="mdi:alert"),
+            PoolConfigSensor(coordinator, CONF_WATER_SAFETY_ORP_CRITICAL_MV, DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV, None, unit="mV", icon="mdi:alert-octagon"),
+            PoolConfigSensor(coordinator, CONF_WATER_SAFETY_PH_MIN, DEFAULT_WATER_SAFETY_PH_MIN, None, unit=None, icon="mdi:ph"),
+            PoolConfigSensor(coordinator, CONF_WATER_SAFETY_PH_MAX, DEFAULT_WATER_SAFETY_PH_MAX, None, unit=None, icon="mdi:ph"),
         ]
         async_add_entities(cfg_sensors)
     except Exception:
@@ -366,7 +378,9 @@ class PoolConfigSensor(PoolBaseSensor):
                 if val is None:
                     val = (self.coordinator.entry.data or {}).get(self._option_key)
             if val is None:
-                return int(self._default)
-            return int(val)
+                val = self._default
+            # Duration and threshold sensors historically expose integers, while
+            # pH threshold sensors must retain their configured decimal value.
+            return float(val) if isinstance(self._default, float) else int(val)
         except Exception:
-            return int(self._default)
+            return float(self._default) if isinstance(self._default, float) else int(self._default)

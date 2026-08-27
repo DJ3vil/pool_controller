@@ -9,6 +9,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers import entity_registry as er
 from .const import *
+from .blueriiot import BlueRiiotReader
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,6 +17,8 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, entry):
         self.entry = entry
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=30))
+        self._blueriiot_reader = BlueRiiotReader(hass)
+        self._active_notification_alerts: set[str] = set()
         # Target temperature: prefer persisted option, else config value, else default.
         self.target_temp = DEFAULT_TARGET_TEMP
         if entry:
@@ -947,6 +950,208 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             return None
 
     @staticmethod
+    def _blueriiot_clock_minutes(value, default: str) -> int:
+        """Return a local clock time as minutes after midnight."""
+        raw_value = str(value or default)
+        try:
+            hours, minutes, *_ = raw_value.split(":")
+            hour = int(hours)
+            minute = int(minutes)
+            if 0 <= hour <= 23 and 0 <= minute <= 59:
+                return hour * 60 + minute
+        except (TypeError, ValueError):
+            pass
+        return PoolControllerDataCoordinator._blueriiot_clock_minutes(default, default)
+
+    def _blueriiot_interval_for_time(self, conf: dict, now: datetime) -> tuple[int, bool]:
+        """Select the configured day or night interval for a local time."""
+        day_interval = max(5, int(conf.get(CONF_BLUERIIOT_INTERVAL_MINUTES, DEFAULT_BLUERIIOT_INTERVAL_MINUTES)))
+        night_interval = max(5, int(conf.get(CONF_BLUERIIOT_NIGHT_INTERVAL_MINUTES, DEFAULT_BLUERIIOT_NIGHT_INTERVAL_MINUTES)))
+        night_start = self._blueriiot_clock_minutes(conf.get(CONF_BLUERIIOT_NIGHT_START), DEFAULT_BLUERIIOT_NIGHT_START)
+        night_end = self._blueriiot_clock_minutes(conf.get(CONF_BLUERIIOT_NIGHT_END), DEFAULT_BLUERIIOT_NIGHT_END)
+        current = now.hour * 60 + now.minute
+        is_night = (
+            night_start != night_end
+            and (
+                night_start <= current < night_end
+                if night_start < night_end
+                else current >= night_start or current < night_end
+            )
+        )
+        return (night_interval if is_night else day_interval), is_night
+
+    async def async_read_blueriiot_now(self) -> bool:
+        """Perform one immediate native BlueRiiot measurement when configured."""
+        conf = {**(self.entry.data or {}), **(self.entry.options or {})}
+        if not bool(conf.get(CONF_ENABLE_BLUERIIOT, DEFAULT_ENABLE_BLUERIIOT)):
+            self._blueriiot_reader.last_error = "not_enabled"
+            return False
+
+        address = str(conf.get(CONF_BLUERIIOT_MAC) or "").strip()
+        if not address:
+            self._blueriiot_reader.last_error = "not_configured"
+            return False
+
+        interval, _ = self._blueriiot_interval_for_time(conf, dt_util.now())
+        await self._blueriiot_reader.async_read_if_due(
+            address,
+            timedelta(minutes=interval),
+            force=True,
+            salt_divisor=float(
+                conf.get(CONF_BLUERIIOT_SALT_DIVISOR, DEFAULT_BLUERIIOT_SALT_DIVISOR)
+            ),
+        )
+        return self._blueriiot_reader.last_error is None
+
+    async def _async_push_blueriiot_proxy_display(self, data: dict) -> None:
+        """Publish the coordinator snapshot to one discovered ESPHome proxy display."""
+        esphome_services = self.hass.services.async_services().get("esphome", {})
+        matching_services = [
+            service_name
+            for service_name in esphome_services
+            if service_name.endswith("_pool_controller_display")
+        ]
+        if len(matching_services) != 1:
+            return
+
+        def _display_value(key: str) -> tuple[float, bool]:
+            value = data.get(key)
+            if value is None:
+                return 0.0, False
+            try:
+                return float(value), True
+            except (TypeError, ValueError):
+                return 0.0, False
+
+        temperature, temperature_valid = _display_value("water_temp")
+        ph, ph_valid = _display_value("ph_val")
+        orp, orp_valid = _display_value("chlor_val")
+        power, power_valid = _display_value("power")
+        try:
+            await self.hass.services.async_call(
+                "esphome",
+                matching_services[0],
+                {
+                    "temperature": temperature,
+                    "temperature_valid": temperature_valid,
+                    "ph": ph,
+                    "ph_valid": ph_valid,
+                    "orp": orp,
+                    "orp_valid": orp_valid,
+                    "reachable": bool(data.get("blueriiot_connected")),
+                    "power": power,
+                    "power_valid": power_valid,
+                },
+                blocking=False,
+            )
+        except Exception:
+            _LOGGER.debug("Could not update ESPHome pool display", exc_info=True)
+
+    async def _async_notify_maintenance_alerts(self, conf: dict, data: dict) -> None:
+        """Notify once when a configured maintenance condition becomes active."""
+        notify_service = str(conf.get(CONF_NOTIFY_SERVICE) or "").strip()
+        if not notify_service:
+            self._active_notification_alerts.clear()
+            return
+
+        active_alerts: dict[str, str] = {}
+        if bool(conf.get(CONF_NOTIFY_SENSOR_HEALTH, DEFAULT_NOTIFY_SENSOR_HEALTH)):
+            if data.get("sensor_health_status") == "problem":
+                active_alerts["sensor_health"] = "Mindestens ein überwachter Pool-Sensor oder das ESP32 ist nicht erreichbar."
+
+        if bool(conf.get(CONF_NOTIFY_WATER_QUALITY, DEFAULT_NOTIFY_WATER_QUALITY)):
+            water_safety_status = data.get("water_safety_status")
+            water_safety_reason = data.get("water_safety_reason")
+            if water_safety_status in {"warning", "critical"}:
+                ph_val = data.get("ph_val")
+                chlor_val = data.get("chlor_val")
+                details = []
+                if ph_val is not None:
+                    try:
+                        details.append(f"pH {float(ph_val):.2f}")
+                    except Exception:
+                        pass
+                if chlor_val is not None:
+                    try:
+                        details.append(f"ORP {int(round(float(chlor_val)))} mV")
+                    except Exception:
+                        pass
+                prefix = "Kritisches Wasser-kippt-Risiko" if water_safety_status == "critical" else "Erhöhtes Wasser-kippt-Risiko"
+                suffix = f" ({', '.join(details)})" if details else ""
+                reason_text = {
+                    "very_low_orp": "Desinfektionsleistung ist sehr niedrig.",
+                    "high_ph_low_orp": "Hoher pH-Wert und niedriger ORP-Wert machen die Desinfektion unwirksam.",
+                    "low_orp": "Der ORP-/Chlorwert ist zu niedrig.",
+                    "ph_out_of_range": "Der pH-Wert liegt außerhalb des Komfortbereichs.",
+                }.get(str(water_safety_reason), "Wasserqualität benötigt Aufmerksamkeit.")
+                active_alerts["water_safety"] = f"{prefix}{suffix}: {reason_text}"
+
+            ph_val = data.get("ph_val")
+            if ph_val is not None:
+                try:
+                    ph_value = float(ph_val)
+                except Exception:
+                    ph_value = None
+                if ph_value is not None and (ph_value < 7.1 or ph_value > 7.6) and "water_safety" not in active_alerts:
+                    active_alerts["ph"] = (
+                        f"Der pH-Wert liegt außerhalb des empfohlenen Bereichs (7.1-7.6): {ph_value:.2f}."
+                    )
+
+            chlor_val = data.get("chlor_val")
+            if chlor_val is not None:
+                try:
+                    chlor_value = float(chlor_val)
+                except Exception:
+                    chlor_value = None
+                if chlor_value is not None and chlor_value < 650 and "water_safety" not in active_alerts:
+                    active_alerts["chlor"] = (
+                        f"Der Chlor-/ORP-Wert ist zu niedrig: {int(round(chlor_value))} mV."
+                    )
+
+            tds_status = data.get("tds_status")
+            if tds_status in {"critical", "urgent"}:
+                active_alerts["tds"] = "Die Leitfähigkeit (TDS) benötigt Aufmerksamkeit."
+            alkalinity_status = data.get("alkalinity_status")
+            if alkalinity_status in {"very_low", "low", "high", "critical_high"}:
+                active_alerts["alkalinity"] = "Die Alkalinität liegt außerhalb des empfohlenen Bereichs."
+
+        previous_alerts = set(self._active_notification_alerts)
+        new_alert_keys = set(active_alerts) - previous_alerts
+        resolved_alert_keys = previous_alerts - set(active_alerts)
+        if not new_alert_keys and not resolved_alert_keys:
+            self._active_notification_alerts = set(active_alerts)
+            return
+
+        if notify_service not in self.hass.services.async_services().get("notify", {}):
+            _LOGGER.warning("Configured notification service notify.%s is not available", notify_service)
+            return
+
+        messages = [active_alerts[key] for key in sorted(new_alert_keys)]
+        resolved_messages = {
+            "water_safety": "Entwarnung: pH und ORP sind wieder im unkritischen Bereich.",
+            "ph": "Entwarnung: Der pH-Wert ist wieder im empfohlenen Bereich.",
+            "chlor": "Entwarnung: Der Chlor-/ORP-Wert ist wieder im empfohlenen Bereich.",
+            "tds": "Entwarnung: TDS benötigt aktuell keine kritische Wartung mehr.",
+            "alkalinity": "Entwarnung: Die Alkalinitätslage ist wieder unkritisch.",
+            "sensor_health": "Entwarnung: Die überwachten Pool-Sensoren sind wieder erreichbar.",
+        }
+        messages.extend(resolved_messages.get(key, f"Entwarnung: {key}") for key in sorted(resolved_alert_keys))
+        title = "Pool Controller: Wartung erforderlich" if new_alert_keys else "Pool Controller: Entwarnung"
+        try:
+            await self.hass.services.async_call(
+                "notify",
+                notify_service,
+                {
+                    "title": title,
+                    "message": "\n".join(messages),
+                },
+                blocking=False,
+            )
+            self._active_notification_alerts = set(active_alerts)
+        except Exception:
+            _LOGGER.warning("Could not send pool maintenance notification", exc_info=True)
+
+    @staticmethod
     def _clamp(value: float, low: float, high: float) -> float:
         return max(low, min(high, value))
 
@@ -1064,10 +1269,17 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                     forecast_temp = float(sum(vals) / len(vals))
 
         # Normalize factors to roughly [-1, 1]. Positive means "warmer preference".
+        # Prefer the local pool-side outdoor sensor for temperature comfort; official
+        # weather stations are often shaded/cooler and should not cancel hot pool-side air.
         def _norm_temp(v: float | None):
             if v is None:
                 return None
-            return self._clamp((18.0 - float(v)) / 18.0, -1.0, 1.0)
+            temp = float(v)
+            if temp < 24.0:
+                return self._clamp((24.0 - temp) / 12.0, 0.0, 1.0)
+            if temp <= 29.0:
+                return 0.0
+            return -self._clamp((temp - 29.0) / 6.0, 0.0, 1.0)
 
         def _norm_wind(v: float | None):
             if v is None:
@@ -1100,13 +1312,15 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             w_forecast = DEFAULT_DYNAMIC_TARGET_WEATHER_WEIGHT_FORECAST
 
         temp_input = outdoor_temp if outdoor_temp is not None else weather_temp
+        use_official_weather_temperature = outdoor_temp is None
         comp = []
         n = _norm_temp(temp_input)
         if n is not None and w_temp > 0:
             comp.append((n, w_temp))
-        n = _norm_temp(weather_feels)
-        if n is not None and w_feels > 0:
-            comp.append((n, w_feels))
+        if use_official_weather_temperature:
+            n = _norm_temp(weather_feels)
+            if n is not None and w_feels > 0:
+                comp.append((n, w_feels))
         n = _norm_wind(weather_wind)
         if n is not None and w_wind > 0:
             comp.append((n, w_wind))
@@ -1116,9 +1330,10 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
         n = _norm_cloud(weather_cloud)
         if n is not None and w_cloud > 0:
             comp.append((n, w_cloud))
-        n = _norm_temp(forecast_temp)
-        if n is not None and w_forecast > 0:
-            comp.append((n, w_forecast))
+        if use_official_weather_temperature:
+            n = _norm_temp(forecast_temp)
+            if n is not None and w_forecast > 0:
+                comp.append((n, w_forecast))
 
         weather_offset = 0.0
         if weather_limit > 0 and comp:
@@ -2122,6 +2337,38 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                         return fallback
                 return configured
 
+            def _entity_reachable(entity_id: str | None) -> bool | None:
+                if not entity_id:
+                    return None
+                state = self.hass.states.get(entity_id)
+                if state is None:
+                    return False
+                raw = str(state.state or "").strip().lower()
+                if raw in ("unknown", "unavailable"):
+                    return False
+                if raw in ("on", "home", "connected", "true", "1"):
+                    return True
+                if raw in ("off", "not_home", "disconnected", "false", "0"):
+                    return False
+                return True
+
+            def _device_reachable(device_id: str | None) -> bool | None:
+                if not device_id or not ent_reg:
+                    return None
+                try:
+                    entries = er.async_entries_for_device(ent_reg, device_id, include_disabled_entities=False)
+                except Exception:
+                    entries = []
+                seen = False
+                for entry in entries:
+                    state = self.hass.states.get(entry.entity_id)
+                    if state is None:
+                        continue
+                    seen = True
+                    if str(state.state or "").strip().lower() not in ("unknown", "unavailable"):
+                        return True
+                return False if seen else None
+
             # Keep aux_allowed in sync with persisted options.
             aux_feature_enabled = bool(
                 conf.get(
@@ -2203,9 +2450,74 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             # First run: migrate legacy timer options (best effort)
             await self.async_migrate_legacy_timers()
             
-            # Sensoren
+            # Sensors
             water_temp = self._get_float(conf.get(CONF_TEMP_WATER))
             outdoor_temp = self._get_float(conf.get(CONF_TEMP_OUTDOOR))
+
+            blueriiot_enabled = bool(conf.get(CONF_ENABLE_BLUERIIOT, DEFAULT_ENABLE_BLUERIIOT))
+            blueriiot_reading = None
+            blueriiot_interval = DEFAULT_BLUERIIOT_INTERVAL_MINUTES
+            blueriiot_night_active = False
+            blueriiot_last_success_before = self._blueriiot_reader.last_success
+            blueriiot_reading_fresh = False
+            if blueriiot_enabled and str(conf.get(CONF_BLUERIIOT_MAC) or "").strip():
+                try:
+                    blueriiot_interval, blueriiot_night_active = self._blueriiot_interval_for_time(conf, now)
+                    blueriiot_reading = await self._blueriiot_reader.async_read_if_due(
+                        str(conf[CONF_BLUERIIOT_MAC]).strip(),
+                        timedelta(minutes=blueriiot_interval),
+                        salt_divisor=float(
+                            conf.get(
+                                CONF_BLUERIIOT_SALT_DIVISOR,
+                                DEFAULT_BLUERIIOT_SALT_DIVISOR,
+                            )
+                        ),
+                    )
+                    blueriiot_reading_fresh = bool(
+                        blueriiot_reading is not None
+                        and self._blueriiot_reader.last_success != blueriiot_last_success_before
+                    )
+                except Exception:
+                    _LOGGER.exception("BlueRiiot reading failed")
+
+            use_blueriiot_reading = bool(
+                blueriiot_reading is not None
+                and self._blueriiot_reader.is_recently_reachable(
+                    timedelta(minutes=blueriiot_interval * 2)
+                )
+            )
+
+            if use_blueriiot_reading:
+                water_temp = blueriiot_reading.temperature
+
+            sensor_health_enabled = bool(conf.get(CONF_ENABLE_SENSOR_HEALTH, DEFAULT_ENABLE_SENSOR_HEALTH))
+            sensor_health_esp32_ok = None
+            sensor_health_water_sensor_ok = None
+            sensor_health_status = "disabled"
+            sensor_health_message = "disabled"
+            if sensor_health_enabled:
+                sensor_health_esp32_ok = _device_reachable(conf.get(CONF_SENSOR_HEALTH_ESP32_DEVICE))
+                if use_blueriiot_reading:
+                    sensor_health_water_sensor_ok = self._blueriiot_reader.is_recently_reachable(
+                        timedelta(minutes=blueriiot_interval * 2)
+                    )
+                else:
+                    sensor_health_water_sensor_ok = _entity_reachable(conf.get(CONF_SENSOR_HEALTH_WATER_SENSOR))
+                monitored = [v for v in (sensor_health_esp32_ok, sensor_health_water_sensor_ok) if v is not None]
+                if not monitored:
+                    sensor_health_status = "unknown"
+                    sensor_health_message = "not_configured"
+                elif any(v is False for v in monitored):
+                    sensor_health_status = "problem"
+                    if sensor_health_esp32_ok is False and sensor_health_water_sensor_ok is False:
+                        sensor_health_message = "esp32_and_water_sensor_unreachable"
+                    elif sensor_health_esp32_ok is False:
+                        sensor_health_message = "esp32_unreachable"
+                    else:
+                        sensor_health_message = "water_sensor_unreachable"
+                else:
+                    sensor_health_status = "ok"
+                    sensor_health_message = "ok"
 
             dynamic_target = await self._compute_dynamic_target(conf, water_temp, outdoor_temp, now)
             self.target_temp_effective = float(dynamic_target.get("effective", self.target_temp))
@@ -2222,6 +2534,11 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             chlor_val = self._get_float(conf.get(CONF_CHLORINE_SENSOR))
             salt_val = self._get_float(conf.get(CONF_SALT_SENSOR))
             conductivity_val = self._get_float(conf.get(CONF_TDS_SENSOR))  # in μS/cm
+            if use_blueriiot_reading:
+                ph_val = blueriiot_reading.ph
+                chlor_val = blueriiot_reading.orp
+                salt_val = blueriiot_reading.salt
+                conductivity_val = blueriiot_reading.conductivity
             # TDS-Umrechnung: μS/cm * 0.64 = ppm (Standard-Konversionsfaktor)
             tds_val = round(conductivity_val * 0.64) if conductivity_val else None
 
@@ -2273,14 +2590,17 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             tds_water_change_liters = 0
             tds_water_change_percent = 0
             tds_high = False
+            water_safety_status = "unknown"
+            water_safety_reason = "missing_data"
+            water_safety_risk = False
 
             # Alkalinitäts-Schätzung (ppm als CaCO3):
             # Heuristik aus effektivem TDS + pH (optional ORP-Korrektur).
             # Ziel ist eine praktikable Orientierung, keine Labor-Analyse.
             alkalinity_estimated_ppm = None
             alkalinity_status = "unknown"
-            alkalinity_plus_g = 0
-            alkalinity_minus_g = 0
+            alkalinity_raise_dose_g = 0
+            alkalinity_lower_dose_g = 0
             alkalinity_action = "measure_first"
             alkalinity_total_dose_g = 0
             alkalinity_step_dose_g = 0
@@ -2346,6 +2666,54 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                 if vol_l and tds_for_maintenance > target_tds:
                     tds_water_change_liters = round(vol_l * (tds_for_maintenance - target_tds) / tds_for_maintenance)
                     tds_water_change_percent = round((tds_water_change_liters / vol_l) * 100)
+
+            try:
+                ph_float = float(ph_val) if ph_val is not None else None
+            except Exception:
+                ph_float = None
+            try:
+                chlor_float = float(chlor_val) if chlor_val is not None else None
+            except Exception:
+                chlor_float = None
+            if ph_float is not None and chlor_float is not None:
+                try:
+                    orp_warning_mv = float(conf.get(CONF_WATER_SAFETY_ORP_WARNING_MV, DEFAULT_WATER_SAFETY_ORP_WARNING_MV))
+                    orp_critical_mv = float(conf.get(CONF_WATER_SAFETY_ORP_CRITICAL_MV, DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV))
+                    ph_min = float(conf.get(CONF_WATER_SAFETY_PH_MIN, DEFAULT_WATER_SAFETY_PH_MIN))
+                    ph_max = float(conf.get(CONF_WATER_SAFETY_PH_MAX, DEFAULT_WATER_SAFETY_PH_MAX))
+                except (TypeError, ValueError):
+                    orp_warning_mv = DEFAULT_WATER_SAFETY_ORP_WARNING_MV
+                    orp_critical_mv = DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV
+                    ph_min = DEFAULT_WATER_SAFETY_PH_MIN
+                    ph_max = DEFAULT_WATER_SAFETY_PH_MAX
+                orp_warning_mv = min(max(orp_warning_mv, 350), 900)
+                orp_critical_mv = min(max(orp_critical_mv, 250), 800)
+                if orp_critical_mv >= orp_warning_mv:
+                    orp_critical_mv = orp_warning_mv - 10
+                if ph_min >= ph_max:
+                    ph_min = DEFAULT_WATER_SAFETY_PH_MIN
+                    ph_max = DEFAULT_WATER_SAFETY_PH_MAX
+
+                ph_outside_comfort = ph_float < ph_min or ph_float > ph_max
+                ph_high = ph_float > ph_max
+                orp_low = chlor_float < orp_warning_mv
+                orp_very_low = chlor_float < orp_critical_mv
+                if orp_very_low:
+                    water_safety_status = "critical"
+                    water_safety_reason = "very_low_orp"
+                elif ph_high and orp_low:
+                    water_safety_status = "critical"
+                    water_safety_reason = "high_ph_low_orp"
+                elif orp_low:
+                    water_safety_status = "warning"
+                    water_safety_reason = "low_orp"
+                elif ph_outside_comfort:
+                    water_safety_status = "warning"
+                    water_safety_reason = "ph_out_of_range"
+                else:
+                    water_safety_status = "ok"
+                    water_safety_reason = "ok"
+                water_safety_risk = water_safety_status in {"warning", "critical"}
 
             profile = self._chemistry_profile(sanitizer_mode, sanitizer_product)
             profile["min_samples"] = max(int(profile.get("min_samples", 0) or 0), conf_min_samples)
@@ -2413,20 +2781,22 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             else:
                 alkalinity_measurement_reason = "insufficient_history"
 
-            self._append_chem_history_sample(
-                now=now,
-                ph_val=ph_val,
-                chlor_val=chlor_val,
-                tds_effective=tds_for_maintenance,
-                alk_raw=alkalinity_estimated_ppm_raw,
-                stable=stable_now,
-                reason=("ok" if stable_now else alkalinity_measurement_reason),
-            )
+            should_record_chem_history = not (blueriiot_reading is not None and not use_blueriiot_reading)
+            if should_record_chem_history:
+                self._append_chem_history_sample(
+                    now=now,
+                    ph_val=ph_val,
+                    chlor_val=chlor_val,
+                    tds_effective=tds_for_maintenance,
+                    alk_raw=alkalinity_estimated_ppm_raw,
+                    stable=stable_now,
+                    reason=("ok" if stable_now else alkalinity_measurement_reason),
+                )
 
-            try:
-                await self._maybe_persist_chemistry_history(now)
-            except Exception:
-                pass
+                try:
+                    await self._maybe_persist_chemistry_history(now)
+                except Exception:
+                    pass
 
             stable_samples = self._recent_chem_samples(now, profile["lookback_minutes"], stable_only=True)
             alk_stable_samples = [s for s in stable_samples if s.get("alk_raw") is not None]
@@ -2458,13 +2828,13 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                     if volume_m3 > 0:
                         if alkalinity_estimated_ppm < alk_low_threshold:
                             delta_up = max(0.0, float(alkalinity_target_ppm) - float(alkalinity_estimated_ppm))
-                            alkalinity_plus_g = int(round(volume_m3 * (delta_up / 10.0) * 18.0))
+                            alkalinity_raise_dose_g = int(round(volume_m3 * (delta_up / 10.0) * 18.0))
                         elif alkalinity_estimated_ppm > alk_high_threshold:
                             delta_down = max(0.0, float(alkalinity_estimated_ppm) - float(alkalinity_target_ppm))
-                            alkalinity_minus_g = int(round(volume_m3 * (delta_down / 10.0) * 15.0))
+                            alkalinity_lower_dose_g = int(round(volume_m3 * (delta_down / 10.0) * 15.0))
                 except Exception:
-                    alkalinity_plus_g = 0
-                    alkalinity_minus_g = 0
+                    alkalinity_raise_dose_g = 0
+                    alkalinity_lower_dose_g = 0
 
             # Konkrete Handlungsempfehlung aus Alkalinitäts-/TDS-Lage ableiten.
             # Empfehlung nur bei stabiler, historisch abgesicherter Messlage.
@@ -2475,7 +2845,7 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                 alkalinity_water_change_percent = int(tds_water_change_percent or 0)
             elif alkalinity_estimated_ppm < alk_low_threshold:
                 alkalinity_action = "raise_bicarbonate"
-                alkalinity_total_dose_g = int(alkalinity_plus_g or 0)
+                alkalinity_total_dose_g = int(alkalinity_raise_dose_g or 0)
                 try:
                     v_m3 = (float(vol_l) / 1000.0) if vol_l else 0.0
                 except Exception:
@@ -2487,7 +2857,7 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                     alkalinity_step_dose_g = max(1, (alkalinity_total_dose_g + alkalinity_steps - 1) // alkalinity_steps)
             elif alkalinity_estimated_ppm > alk_high_threshold:
                 alkalinity_action = "lower_ph_minus"
-                alkalinity_total_dose_g = int(alkalinity_minus_g or 0)
+                alkalinity_total_dose_g = int(alkalinity_lower_dose_g or 0)
                 try:
                     v_m3 = (float(vol_l) / 1000.0) if vol_l else 0.0
                 except Exception:
@@ -3369,6 +3739,7 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                     pv_band_mid_on = None
                     pv_band_mid_off = None
                     pv_band_high = None
+
             # quiet time check: C and E should not activate during quiet; A/B/D always allowed
             def _in_quiet_period(cfg):
                 try:
@@ -4110,6 +4481,20 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                 "power_saving_available": bool(power_saving_available),
                 "power_saving_stage": int(power_saving_stage),
                 "power_saving_reason": power_saving_reason,
+                "sensor_health_status": sensor_health_status,
+                "sensor_health_message": sensor_health_message,
+                "sensor_health_problem": sensor_health_status == "problem",
+                "sensor_health_esp32_reachable": sensor_health_esp32_ok,
+                "sensor_health_water_sensor_reachable": sensor_health_water_sensor_ok,
+                "blueriiot_enabled": blueriiot_enabled,
+                "blueriiot_interval_minutes": blueriiot_interval,
+                "blueriiot_night_active": blueriiot_night_active,
+                "blueriiot_connected": self._blueriiot_reader.is_recently_reachable(
+                    timedelta(minutes=blueriiot_interval * 2)
+                ),
+                "blueriiot_last_success": self._blueriiot_reader.last_success,
+                "blueriiot_error": self._blueriiot_reader.last_error,
+                "blueriiot_battery": round(blueriiot_reading.battery, 0) if use_blueriiot_reading else None,
                 "dynamic_target_enabled": bool(dynamic_target.get("enabled", False)),
                 "dynamic_target_profile": self.target_temp_profile,
                 "target_temp_base": round(target_temp_base, 2),
@@ -4135,13 +4520,14 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                 "tds_effective": tds_effective,
                 "tds_status": tds_status,
                 "tds_high": tds_high,
+                "water_safety_status": water_safety_status,
+                "water_safety_reason": water_safety_reason,
+                "water_safety_risk": water_safety_risk,
                 "tds_water_change_liters": tds_water_change_liters,
                 "tds_water_change_percent": tds_water_change_percent,
                 "alkalinity_estimated_ppm": alkalinity_estimated_ppm,
                 "alkalinity_estimated_ppm_raw": alkalinity_estimated_ppm_raw,
                 "alkalinity_status": alkalinity_status,
-                "alkalinity_plus_g": alkalinity_plus_g,
-                "alkalinity_minus_g": alkalinity_minus_g,
                 "alkalinity_action": alkalinity_action,
                 "alkalinity_measurement_valid": alkalinity_measurement_valid,
                 "alkalinity_measurement_reason": alkalinity_measurement_reason,
@@ -4186,17 +4572,17 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
                 "pv_smoothed": round(pv_smoothed, 1) if pv_smoothed is not None else None,
                 "power_saving_pump_threshold": round(float(power_saving_pump_threshold_w), 1) if power_saving_pump_threshold_w is not None else None,
                 "power_saving_aux_threshold": round(float(power_saving_aux_threshold_w), 1) if power_saving_aux_threshold_w is not None else None,
-                # PV band sensors for chart coloring (low/mid/high)
-                "pv_band_low": pv_band_low,
-                "pv_band_mid_on": pv_band_mid_on,
-                "pv_band_mid_off": pv_band_mid_off,
-                "pv_band_high": pv_band_high,
                 "pv_allows": pv_allows,
                 # battery-first: True when PV would otherwise trigger a run, but
                 # the gate is closed because house battery SOC is below threshold.
                 # Diagnostic value — useful to expose as a binary_sensor for users
                 # to see *why* the pump isn't running despite PV surplus.
                 "battery_first_blocking": battery_first_blocking,
+                # Fork: PV-Band-Werte fuer die Chart-Einfaerbung (low/mid/high).
+                "pv_band_low": pv_band_low,
+                "pv_band_mid_on": pv_band_mid_on,
+                "pv_band_mid_off": pv_band_mid_off,
+                "pv_band_high": pv_band_high,
                 "in_quiet": in_quiet,
                 "main_power": round(main_power, 1) if main_power is not None else None,
                 "aux_power": round(aux_power, 1) if aux_power is not None else None,
@@ -4454,6 +4840,8 @@ class PoolControllerDataCoordinator(DataUpdateCoordinator):
             # Cache last good data for fallback
             self.data = data
             _LOGGER.debug("Coordinator cached data updated (%s)", getattr(self.entry, "entry_id", None))
+            await self._async_push_blueriiot_proxy_display(data)
+            await self._async_notify_maintenance_alerts(conf, data)
             return data
         except asyncio.CancelledError:
             # Update was cancelled (e.g., overlapping refresh). Keep cached data to

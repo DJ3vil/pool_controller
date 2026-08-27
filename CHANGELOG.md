@@ -2,6 +2,74 @@
 
 All notable changes to this integration are documented in this file.
 
+## [2.14.9] - 2026-08-13
+- Rework of blueriiot integration. Optimized discovery and salt and batterie calculation
+- Updated documentation
+
+
+## [2.14.8] - 2026-08-09
+- Release update.
+
+
+## [2.14.7] - 2026-08-09
+- Release update.
+
+
+## [2.14.4] - 2026-08-09
+- configurable water quality thresholds
+
+
+## [2.14.2] - 2026-07-21
+- support for critical water situations in addition to normal warnings
+- support for release of alerts
+
+
+## [2.14.1] - 2026-07-21
+- fine tuning of dynamic target temp
+- optimize of ha api tool
+
+
+## [2.14.0] - 2026-07-21
+- refactoring and remove of unused sensors
+- bugfix for config flow
+
+
+## [2.13.5] - 2026-07-21
+- refactor of config flow and remove of bugs cause of blueriiot feature
+
+
+## [2.13.4] - 2026-07-21
+- service to get config settings
+
+
+## [2.13.3] - 2026-07-20
+- fix for missing data points
+
+
+## [2.13.2] - 2026-07-20
+- Fix for blueriiot config flow
+
+
+## [2.13.1] - 2026-07-20
+- Sync scan logic with real scans by sensor
+
+
+## [2.13.0] - 2026-07-19
+- Notify mobile device on water quality issues or sensor health topics
+
+
+## [2.12.0] - 2026-07-19
+- Direct Integration for blueriiot connect via esp32 bluetooth proxy
+
+
+## [2.11.1] - 2026-07-16
+- Fix for config flow
+
+
+## [2.11.0] - 2026-07-16
+- Sensor Reachability Feature
+
+
 ## [2.8.3] - 2026-06-29
 - Fix for effective targeting defaults and docu
 

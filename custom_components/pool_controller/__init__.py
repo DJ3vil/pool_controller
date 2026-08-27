@@ -1,6 +1,6 @@
 import logging
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, SupportsResponse
 from homeassistant.config_entries import ConfigEntry
 import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
@@ -87,6 +87,15 @@ from .const import (
     CONF_CHEM_COOLDOWN_MINUTES,
     CONF_CHEM_HISTORY_LOOKBACK_MINUTES,
     CONF_CHEM_MIN_STABLE_SAMPLES,
+    CONF_ENABLE_BLUERIIOT,
+    CONF_BLUERIIOT_MAC,
+    CONF_BLUERIIOT_INTERVAL_MINUTES,
+    CONF_BLUERIIOT_NIGHT_INTERVAL_MINUTES,
+    CONF_BLUERIIOT_NIGHT_START,
+    CONF_BLUERIIOT_NIGHT_END,
+    CONF_NOTIFY_SERVICE,
+    CONF_NOTIFY_SENSOR_HEALTH,
+    CONF_NOTIFY_WATER_QUALITY,
     CONF_ENABLE_DYNAMIC_TARGET,
     CONF_DYNAMIC_TARGET_WEATHER_ENTITY,
     CONF_DYNAMIC_TARGET_WINTER_OFFSET,
@@ -194,6 +203,15 @@ _NO_RELOAD_OPTION_KEYS = {
     CONF_CHEM_COOLDOWN_MINUTES,
     CONF_CHEM_HISTORY_LOOKBACK_MINUTES,
     CONF_CHEM_MIN_STABLE_SAMPLES,
+    CONF_ENABLE_BLUERIIOT,
+    CONF_BLUERIIOT_MAC,
+    CONF_BLUERIIOT_INTERVAL_MINUTES,
+    CONF_BLUERIIOT_NIGHT_INTERVAL_MINUTES,
+    CONF_BLUERIIOT_NIGHT_START,
+    CONF_BLUERIIOT_NIGHT_END,
+    CONF_NOTIFY_SERVICE,
+    CONF_NOTIFY_SENSOR_HEALTH,
+    CONF_NOTIFY_WATER_QUALITY,
     CONF_ENABLE_DYNAMIC_TARGET,
     CONF_DYNAMIC_TARGET_WEATHER_ENTITY,
     CONF_DYNAMIC_TARGET_WINTER_OFFSET,
@@ -235,6 +253,8 @@ SERVICE_START_POWER_SAVING = "start_power_saving"
 SERVICE_STOP_POWER_SAVING = "stop_power_saving"
 SERVICE_SET_DYNAMIC_TARGET = "set_dynamic_target"
 SERVICE_SET_OPTIONS = "set_options"
+SERVICE_GET_OPTIONS = "get_options"
+SERVICE_READ_BLUERIIOT = "read_blueriiot"
 
 
 # Korrektes Schema: target wird von HA automatisch hinzugefügt, nicht im Schema definieren!
@@ -555,6 +575,38 @@ def _ensure_services_registered(hass: HomeAssistant):
         await coordinator._async_update_entry_options(new_opts)
         await coordinator.async_request_refresh()
 
+    async def handle_get_options(call):
+        coordinator = _resolve_coordinator(hass, call)
+        if not coordinator:
+            _warn_no_target("get_options", call)
+            return {"error": "no_target"}
+
+        data = dict(coordinator.entry.data or {})
+        options = dict(coordinator.entry.options or {})
+        effective = {**data, **options}
+        persistent_options = {
+            key: value
+            for key, value in options.items()
+            if key not in _TRANSIENT_OPTION_KEYS
+        }
+        return {
+            "entry_id": coordinator.entry.entry_id,
+            "title": coordinator.entry.title,
+            "data": data,
+            "options": options,
+            "persistent_options": persistent_options,
+            "effective": effective,
+        }
+
+    async def handle_read_blueriiot(call):
+        coordinator = _resolve_coordinator(hass, call)
+        if not coordinator:
+            _warn_no_target("read_blueriiot", call)
+            return
+        if not await coordinator.async_read_blueriiot_now():
+            _LOGGER.warning("pool_controller.read_blueriiot: reader is not configured or did not return data")
+        await coordinator.async_request_refresh()
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_START_PAUSE,
@@ -655,6 +707,19 @@ def _ensure_services_registered(hass: HomeAssistant):
         SERVICE_SET_OPTIONS,
         handle_set_options,
         schema=SET_OPTIONS_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_OPTIONS,
+        handle_get_options,
+        schema=STOP_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_READ_BLUERIIOT,
+        handle_read_blueriiot,
+        schema=STOP_SCHEMA,
     )
 
     hass.data[DOMAIN][_SERVICES_REGISTERED_KEY] = True

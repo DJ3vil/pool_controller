@@ -7,12 +7,18 @@
                 "data": {
                     "name": "Nombre de la piscina",
                     "water_volume": "Volumen de agua en litros (para cálculos de dosificación y calentamiento)",
-                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)"
+                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)",
+                    "sanitizer_mode": "Sanitization mode",
+                    "sanitizer_product": "Chlorine product",
+                    "target_salt_g_l": "Target salt (g/L)"
                 },
                 "data_description": {
                     "name": "Nombre visible para esta instalación",
                     "water_volume": "Volumen de agua en litros (usado para dosificación y tiempo de calentamiento)",
-                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)"
+                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)",
+                    "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both",
+                    "sanitizer_product": "The main chlorine product used for dosing. Saltwater automatically uses a salt cell.",
+                    "target_salt_g_l": "Target salt level for saltwater or mixed operation"
                 }
             },
             "switches": {
@@ -26,7 +32,9 @@
                     "enable_aux_heating": "Habilitar calefactor auxiliar",
                     "aux_heating_switch": "Interruptor del calefactor auxiliar",
                     "main_power_sensor": "Sensor de potencia principal",
-                    "aux_power_sensor": "Sensor de potencia del calefactor auxiliar"
+                    "aux_power_sensor": "Sensor de potencia del calefactor auxiliar",
+                    "heater_base_power_w": "Potencia base de calefacción (W)",
+                    "heater_aux_power_w": "Potencia del calentador auxiliar (W)"
                 },
                 "data_description": {
                     "main_switch": "Interruptor principal / alimentación de la piscina (obligatorio)",
@@ -35,37 +43,118 @@
                     "enable_aux_heating": "Habilita el calefactor auxiliar para calentar más rápido",
                     "aux_heating_switch": "Interruptor del calefactor auxiliar eléctrico",
                     "main_power_sensor": "Sensor de potencia de la bomba principal en vatios",
-                    "aux_power_sensor": "Sensor de potencia del calefactor en vatios"
+                    "aux_power_sensor": "Sensor de potencia del calefactor en vatios",
+                    "heater_base_power_w": "Contribución base (p. ej. calor residual de la bomba) usada para estimar el precalentamiento.",
+                    "heater_aux_power_w": "Potencia nominal del calentador auxiliar (W) usada para estimar el precalentamiento cuando la calefacción auxiliar está activada. Total = base + auxiliar."
                 }
             },
             "water_quality": {
                 "title": "Calidad del agua",
-                "description": "Selecciona sensores de temperatura y (opcionalmente) química.",
+                "description": "Selecciona sensores clásicos de temperatura y química. Déjalo vacío cuando la lectura directa de BlueRiiot esté activada.",
                 "submit": "Continuar",
                 "data": {
                     "temp_water_sensor": "Temperatura del agua",
                     "ph_sensor": "Sensor de pH",
                     "chlorine_sensor": "Sensor de cloro (redox)",
                     "salt_sensor": "Sensor de sal",
-                    "tds_sensor": "Sensor de conductividad"
+                    "tds_sensor": "Sensor de conductividad",
+                    "water_safety_orp_warning_mv": "ORP warning threshold (mV)",
+                    "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
+                    "water_safety_ph_min": "pH lower warning threshold",
+                    "water_safety_ph_max": "pH upper warning threshold"
                 },
                 "data_description": {
-                    "temp_water_sensor": "Sensor de temperatura del agua (obligatorio)",
-                    "ph_sensor": "Sensor de pH (Blueriiot o similar)",
-                    "chlorine_sensor": "Sensor redox para medir cloro en mV",
-                    "salt_sensor": "Sensor de sal para piscinas de agua salada",
-                    "tds_sensor": "Sensor de conductividad (TDS) para calidad del agua"
+                    "temp_water_sensor": "Optional pool water temperature sensor when direct BlueRiiot reading is not used",
+                    "ph_sensor": "pH value sensor (Blueriiot or similar)",
+                    "chlorine_sensor": "Redox sensor for chlorine measurement in mV",
+                    "salt_sensor": "Salt content sensor for saltwater pools",
+                    "tds_sensor": "Conductivity sensor (TDS) for water quality",
+                    "water_safety_orp_warning_mv": "Below this value the water safety status becomes a warning (default: 550 mV)",
+                    "water_safety_orp_critical_mv": "Below this value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
+                    "water_safety_ph_min": "Below this value the water safety status becomes a warning (default: 7.0)",
+                    "water_safety_ph_max": "Above this value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
+                }
+            },
+            "blueriiot": {
+                "title": "Lector Bluetooth BlueRiiot",
+                "description": "Opcional: lee valores de BlueRiiot directamente mediante adaptadores y proxies Bluetooth de Home Assistant. Déjalo desactivado para usar el fallback clásico basado en sensores.",
+                "submit": "Continuar",
+                "data": {
+                    "enable_blueriiot": "Leer BlueRiiot directamente",
+                    "blueriiot_mac": "Dirección Bluetooth de BlueRiiot",
+                    "blueriiot_salt_divisor": "Divisor de calibración de sal",
+                    "blueriiot_interval_minutes": "Intervalo de lectura diurno",
+                    "blueriiot_night_interval_minutes": "Intervalo de lectura nocturno",
+                    "blueriiot_night_start": "Inicio de la noche",
+                    "blueriiot_night_end": "Fin de la noche"
+                },
+                "data_description": {
+                    "enable_blueriiot": "Al activarlo, las lecturas nuevas de BlueRiiot tienen prioridad. Si no hay una lectura nueva, las entidades de sensores clásicas configuradas siguen siendo el fallback.",
+                    "blueriiot_mac": "Los dispositivos Bluetooth cercanos se muestran automáticamente. Selecciona el BlueRiiot o introduce su dirección MAC manualmente si no aparece.",
+                    "blueriiot_salt_divisor": "Valor predeterminado 18 para Blue Connect Plus Salt. Cámbialo solo con una medición de referencia fiable.",
+                    "blueriiot_interval_minutes": "Tiempo mínimo entre lecturas Bluetooth directas durante el día.",
+                    "blueriiot_night_interval_minutes": "Tiempo mínimo entre lecturas Bluetooth directas durante la noche.",
+                    "blueriiot_night_start": "Hora local a la que comienza el intervalo nocturno.",
+                    "blueriiot_night_end": "Hora local a la que vuelve a comenzar el intervalo diurno."
+                }
+            },
+            "sensor_health": {
+                "title": "Supervisión de disponibilidad de sensores",
+                "description": "Opcional: supervisa si la infraestructura de medición está disponible. Déjalo desactivado si tu instalación no lo necesita.",
+                "submit": "Continuar",
+                "data": {
+                    "enable_sensor_health": "Activar supervisión de sensores",
+                    "sensor_health_esp32_device": "Dispositivo ESP32",
+                    "sensor_health_water_sensor": "Disponibilidad del sensor de agua"
+                },
+                "data_description": {
+                    "enable_sensor_health": "Muestra un problema cuando la infraestructura de medición configurada no está disponible. Con lectura directa de BlueRiiot se usa el estado interno del lector.",
+                    "sensor_health_esp32_device": "Dispositivo opcional que proporciona las mediciones de la piscina. Se considera disponible cuando al menos una entidad de este dispositivo está disponible.",
+                    "sensor_health_water_sensor": "Binary sensor opcional que está encendido cuando el sensor de agua (por ejemplo BlueRiiot) está disponible."
+                }
+            },
+            "measurement": {
+                "title": "Measurement infrastructure",
+                "description": "Configure direct BlueRiiot readings and optional reachability monitoring together.",
+                "submit": "Continue",
+                "data": {
+                    "enable_blueriiot": "Read BlueRiiot directly",
+                    "blueriiot_mac": "BlueRiiot Bluetooth address",
+                    "blueriiot_interval_minutes": "Daytime reading interval",
+                    "blueriiot_night_interval_minutes": "Nighttime reading interval",
+                    "blueriiot_night_start": "Nighttime starts",
+                    "blueriiot_night_end": "Nighttime ends",
+                    "enable_sensor_health": "Enable reachability monitoring",
+                    "sensor_health_esp32_device": "ESP32 device",
+                    "sensor_health_water_sensor": "Water sensor reachability"
+                }
+            },
+            "notifications": {
+                "title": "Notificaciones de mantenimiento",
+                "description": "Opcionalmente informa a una aplicación móvil de Home Assistant cuando un sensor no está disponible o la calidad del agua requiere atención. Las alertas se envían una vez al comenzar una condición, incluyendo avisos de pH y cloro/ORP.",
+                "submit": "Continuar",
+                "data": {
+                    "notify_service": "Teléfono",
+                    "notify_sensor_health": "Avisar cuando un sensor no esté disponible",
+                    "notify_water_quality": "Avisar sobre la calidad del agua"
+                },
+                "data_description": {
+                    "notify_service": "Selecciona un servicio de notificación de aplicación móvil. Déjalo desactivado para no enviar notificaciones.",
+                    "notify_sensor_health": "Envía una alerta cuando el ESP32 configurado o el sensor de agua no está disponible.",
+                    "notify_water_quality": "Envía una alerta por TDS crítico, alcalinidad fuera del rango recomendado, pH bajo o cloro/ORP bajo."
                 }
             },
             "sanitizer": {
                 "title": "Desinfección",
-                "description": "Elige el modo de desinfección.",
+                "description": "Elige el modo de desinfección y el producto desinfectante utilizado.",
                 "submit": "Continuar",
                 "data": {
-                    "sanitizer_mode": "Modo de desinfección"
+                    "sanitizer_mode": "Modo de desinfección",
+                    "sanitizer_product": "Producto de cloro"
                 },
                 "data_description": {
-                    "sanitizer_mode": "Cloro = dosificación clásica, Salmuera = clorador salino, Mixto = ambos"
+                    "sanitizer_mode": "Cloro = dosificación clásica, Salmuera = clorador salino, Mixto = ambos",
+                    "sanitizer_product": "Elige el producto principal de cloro. En modo solo salino se usa automáticamente el perfil de célula salina."
                 }
             },
             "sanitizer_product": {
@@ -119,8 +208,6 @@
                     "min_temp": "Temperatura mínima",
                     "max_temp": "Temperatura máxima",
                     "target_temp_step": "Paso de temperatura",
-                    "heater_base_power_w": "Potencia base de calefacción (W)",
-                    "heater_aux_power_w": "Potencia del calentador auxiliar (W)",
                     "cold_tolerance": "Tolerancia fría",
                     "hot_tolerance": "Tolerancia caliente"
                 },
@@ -130,8 +217,6 @@
                     "min_temp": "Consigna mínima disponible",
                     "max_temp": "Consigna máxima disponible",
                     "target_temp_step": "Paso para ajustar la temperatura objetivo",
-                    "heater_base_power_w": "Contribución base (p. ej. calor residual de la bomba) usada para estimar el precalentamiento.",
-                    "heater_aux_power_w": "Potencia nominal del calentador auxiliar (W) usada para estimar el precalentamiento cuando la calefacción auxiliar está activada. Total = base + auxiliar.",
                     "cold_tolerance": "El calentador arranca cuando la temperatura del agua está por debajo de objetivo menos este valor",
                     "hot_tolerance": "El calentador se detiene cuando la temperatura del agua es igual o superior a objetivo más este valor"
                 }
@@ -339,7 +424,8 @@
             }
         },
         "error": {
-            "invalid_entity": "Seleccione un interruptor externo, no uno creado por esta integración."
+            "invalid_entity": "Seleccione un interruptor externo, no uno creado por esta integración.",
+            "invalid_mac": "Introduce una dirección MAC Bluetooth válida, por ejemplo 00:A0:50:C7:46:C9."
         }
     },
     "options": {
@@ -350,9 +436,9 @@
                 "menu_options": {
                     "basic": "Básico",
                     "switches": "Interruptores y potencia",
+                    "measurement": "Measurement infrastructure",
                     "water_quality": "Calidad del agua",
-                    "sanitizer": "Desinfección",
-                    "sanitizer_product": "Producto desinfectante",
+                    "notifications": "Notificaciones de mantenimiento",
                     "chemistry": "Estimación química",
                     "climate": "Control de temperatura",
                     "dynamic_target": "Temperatura objetivo dinámica",
@@ -372,12 +458,18 @@
                 "data": {
                     "name": "Nombre de la piscina",
                     "water_volume": "Volumen de agua (litros)",
-                    "demo_mode": "Modo demo"
+                    "demo_mode": "Modo demo",
+                    "sanitizer_mode": "Sanitization mode",
+                    "sanitizer_product": "Chlorine product",
+                    "target_salt_g_l": "Target salt (g/L)"
                 },
                 "data_description": {
                     "name": "Nombre mostrado para esta instalación",
                     "water_volume": "Volumen de agua en litros (para cálculos de dosificación y calentamiento)",
-                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)"
+                    "demo_mode": "Modo demo: no controla dispositivos reales (solo pruebas)",
+                    "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both",
+                    "sanitizer_product": "The main chlorine product used for dosing. Saltwater automatically uses a salt cell.",
+                    "target_salt_g_l": "Target salt level for saltwater or mixed operation"
                 }
             },
             "switches": {
@@ -391,7 +483,9 @@
                     "enable_aux_heating": "Activar calefacción auxiliar",
                     "aux_heating_switch": "Interruptor calefacción auxiliar",
                     "main_power_sensor": "Sensor de potencia principal",
-                    "aux_power_sensor": "Sensor de potencia auxiliar"
+                    "aux_power_sensor": "Sensor de potencia auxiliar",
+                    "heater_base_power_w": "Potencia base de calefacción (W)",
+                    "heater_aux_power_w": "Potencia del calentador auxiliar (W)"
                 },
                 "data_description": {
                     "main_switch": "Interruptor principal / alimentación eléctrica de la piscina (obligatorio)",
@@ -400,37 +494,112 @@
                     "enable_aux_heating": "Activa un calentador adicional",
                     "aux_heating_switch": "Interruptor del calentador auxiliar",
                     "main_power_sensor": "Sensor de potencia de la bomba principal (W)",
-                    "aux_power_sensor": "Sensor de potencia del calentador (W)"
+                    "aux_power_sensor": "Sensor de potencia del calentador (W)",
+                    "heater_base_power_w": "Contribución base (p. ej. calor residual de la bomba) usada para estimar el precalentamiento.",
+                    "heater_aux_power_w": "Potencia nominal del calentador auxiliar (W) usada para estimar el precalentamiento cuando la calefacción auxiliar está activada. Total = base + auxiliar."
                 }
             },
             "water_quality": {
                 "title": "Calidad del agua",
-                "description": "Actualiza la asignación de sensores para temperatura y (opcionalmente) química.",
+                "description": "Actualiza la asignación de sensores clásicos de temperatura y química. Déjalo vacío cuando la lectura directa de BlueRiiot esté activada.",
                 "submit": "Siguiente",
                 "data": {
                     "temp_water_sensor": "Temperatura del agua",
                     "ph_sensor": "Sensor de pH",
                     "chlorine_sensor": "Sensor de cloro (redox)",
                     "salt_sensor": "Sensor de sal",
-                    "tds_sensor": "Sensor de TDS"
+                    "tds_sensor": "Sensor de TDS",
+                    "water_safety_orp_warning_mv": "ORP warning threshold (mV)",
+                    "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
+                    "water_safety_ph_min": "pH lower warning threshold",
+                    "water_safety_ph_max": "pH upper warning threshold"
                 },
                 "data_description": {
-                    "temp_water_sensor": "Sensor de temperatura del agua (obligatorio)",
+                    "temp_water_sensor": "Sensor opcional de temperatura del agua cuando no se usa lectura directa de BlueRiiot",
                     "ph_sensor": "Sensor de pH (p. ej. Blueriiot)",
                     "chlorine_sensor": "Sensor redox para medición de cloro (mV)",
                     "salt_sensor": "Sensor de nivel de sal",
-                    "tds_sensor": "Sensor de TDS / conductividad"
+                    "tds_sensor": "Sensor de TDS / conductividad",
+                    "water_safety_orp_warning_mv": "Below this value the water safety status becomes a warning (default: 550 mV)",
+                    "water_safety_orp_critical_mv": "Below this value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
+                    "water_safety_ph_min": "Below this value the water safety status becomes a warning (default: 7.0)",
+                    "water_safety_ph_max": "Above this value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
+                }
+            },
+            "blueriiot": {
+                "title": "Lector Bluetooth BlueRiiot",
+                "description": "Opcional: lee valores de BlueRiiot directamente mediante adaptadores y proxies Bluetooth de Home Assistant.",
+                "submit": "Siguiente",
+                "data": {
+                    "enable_blueriiot": "Leer BlueRiiot directamente",
+                    "blueriiot_mac": "Dirección Bluetooth de BlueRiiot",
+                    "blueriiot_salt_divisor": "Divisor de calibración de sal",
+                    "blueriiot_interval_minutes": "Intervalo de lectura diurno"
+                },
+                "data_description": {
+                    "enable_blueriiot": "Al activarlo, los valores de BlueRiiot tienen prioridad sobre las entidades de calidad del agua seleccionadas.",
+                    "blueriiot_mac": "Los dispositivos Bluetooth cercanos se muestran automáticamente. Selecciona el BlueRiiot o introduce su dirección MAC manualmente si no aparece.",
+                    "blueriiot_salt_divisor": "Valor predeterminado 18 para Blue Connect Plus Salt. Cámbialo solo con una medición de referencia fiable.",
+                    "blueriiot_interval_minutes": "Tiempo mínimo entre lecturas Bluetooth directas durante el día."
+                }
+            },
+            "sensor_health": {
+                "title": "Supervisión de disponibilidad de sensores",
+                "description": "Opcional: supervisa si la infraestructura de medición está disponible. Déjalo desactivado si tu instalación no lo necesita.",
+                "submit": "Siguiente",
+                "data": {
+                    "enable_sensor_health": "Activar supervisión de sensores",
+                    "sensor_health_esp32_device": "Dispositivo ESP32",
+                    "sensor_health_water_sensor": "Disponibilidad del sensor de agua"
+                },
+                "data_description": {
+                    "enable_sensor_health": "Muestra un problema cuando la infraestructura de medición configurada no está disponible. Con lectura directa de BlueRiiot se usa el estado interno del lector.",
+                    "sensor_health_esp32_device": "Dispositivo opcional que proporciona las mediciones de la piscina. Se considera disponible cuando al menos una entidad de este dispositivo está disponible.",
+                    "sensor_health_water_sensor": "Binary sensor opcional que está encendido cuando el sensor de agua (por ejemplo BlueRiiot) está disponible."
+                }
+            },
+            "measurement": {
+                "title": "Measurement infrastructure",
+                "description": "Configure direct BlueRiiot readings and optional reachability monitoring together.",
+                "submit": "Save",
+                "data": {
+                    "enable_blueriiot": "Read BlueRiiot directly",
+                    "blueriiot_mac": "BlueRiiot Bluetooth address",
+                    "blueriiot_interval_minutes": "Daytime reading interval",
+                    "blueriiot_night_interval_minutes": "Nighttime reading interval",
+                    "blueriiot_night_start": "Nighttime starts",
+                    "blueriiot_night_end": "Nighttime ends",
+                    "enable_sensor_health": "Enable reachability monitoring",
+                    "sensor_health_esp32_device": "ESP32 device",
+                    "sensor_health_water_sensor": "Water sensor reachability"
+                }
+            },
+            "notifications": {
+                "title": "Notificaciones de mantenimiento",
+                "description": "Opcionalmente informa a una aplicación móvil de Home Assistant cuando un sensor no está disponible o la calidad del agua requiere atención. Las alertas se envían una vez al comenzar una condición.",
+                "submit": "Guardar",
+                "data": {
+                    "notify_service": "Teléfono",
+                    "notify_sensor_health": "Avisar cuando un sensor no esté disponible",
+                    "notify_water_quality": "Avisar sobre la calidad del agua"
+                },
+                "data_description": {
+                    "notify_service": "Selecciona un servicio de notificación de aplicación móvil. Déjalo desactivado para no enviar notificaciones.",
+                    "notify_sensor_health": "Envía una alerta cuando el ESP32 configurado o el sensor de agua no está disponible.",
+                    "notify_water_quality": "Envía una alerta por TDS crítico, alcalinidad fuera del rango recomendado, pH bajo o cloro/ORP bajo."
                 }
             },
             "sanitizer": {
                 "title": "Desinfección",
-                "description": "Elige cómo se desinfecta la piscina.",
+                "description": "Elige cómo se desinfecta la piscina y qué producto desinfectante se usa.",
                 "submit": "Siguiente",
                 "data": {
-                    "sanitizer_mode": "Modo de desinfección"
+                    "sanitizer_mode": "Modo de desinfección",
+                    "sanitizer_product": "Producto de cloro"
                 },
                 "data_description": {
-                    "sanitizer_mode": "Cloro = dosificación clásica, Agua salada = clorador salino, Mixto = ambos"
+                    "sanitizer_mode": "Cloro = dosificación clásica, Agua salada = clorador salino, Mixto = ambos",
+                    "sanitizer_product": "Elige el producto principal de cloro. En modo solo salino se usa automáticamente el perfil de célula salina."
                 }
             },
             "sanitizer_product": {
@@ -484,8 +653,6 @@
                     "min_temp": "Temperatura mínima",
                     "max_temp": "Temperatura máxima",
                     "target_temp_step": "Paso de temperatura",
-                    "heater_base_power_w": "Potencia base de calefacción (W)",
-                    "heater_aux_power_w": "Potencia del calentador auxiliar (W)",
                     "cold_tolerance": "Tolerancia fría",
                     "hot_tolerance": "Tolerancia caliente"
                 },
@@ -495,8 +662,6 @@
                     "min_temp": "Consigna mínima disponible",
                     "max_temp": "Consigna máxima disponible",
                     "target_temp_step": "Paso para ajustar la temperatura objetivo",
-                    "heater_base_power_w": "Contribución base (p. ej. calor residual de la bomba) usada para estimar el precalentamiento.",
-                    "heater_aux_power_w": "Potencia nominal del calentador auxiliar (W) usada para estimar el precalentamiento cuando la calefacción auxiliar está activada. Total = base + auxiliar.",
                     "cold_tolerance": "El calentador arranca cuando la temperatura del agua está por debajo de objetivo menos este valor",
                     "hot_tolerance": "El calentador se detiene cuando la temperatura del agua es igual o superior a objetivo más este valor"
                 }
@@ -726,6 +891,18 @@
             "maintenance_active": {
                 "name": "Modo de mantenimiento"
             },
+            "sensor_health_problem": {
+                "name": "Problema de disponibilidad de sensores"
+            },
+            "sensor_health_esp32_reachable": {
+                "name": "ESP32 disponible"
+            },
+            "sensor_health_water_sensor_reachable": {
+                "name": "Sensor de agua disponible"
+            },
+            "blueriiot_connected": {
+                "name": "BlueRiiot disponible"
+            },
             "away_active": {
                 "name": "Ausente"
             },
@@ -771,6 +948,9 @@
             "tds_high": {
                 "name": "TDS alto"
             },
+            "water_safety_risk": {
+                "name": "Riesgo de deterioro del agua"
+            },
             "event_rain_blocked": {
                 "name": "Evento bloqueado por lluvia"
             },
@@ -808,6 +988,9 @@
             },
             "power_saving_stop": {
                 "name": "Modo ahorro energético desactivado"
+            },
+            "blueriiot_read": {
+                "name": "Leer BlueRiiot ahora"
             }
         },
         "sensor": {
@@ -819,6 +1002,21 @@
             },
             "heat_reason": {
                 "name": "Motivo de calefacción"
+            },
+            "sensor_health_status": {
+                "name": "Disponibilidad de sensores"
+            },
+            "sensor_health_message": {
+                "name": "Detalle de disponibilidad de sensores"
+            },
+            "blueriiot_error": {
+                "name": "Error de lectura de BlueRiiot"
+            },
+            "blueriiot_last_success": {
+                "name": "Última lectura correcta de BlueRiiot"
+            },
+            "blueriiot_battery": {
+                "name": "Batería de BlueRiiot"
             },
             "run_credit_source": {
                 "name": "Origen de crédito"
@@ -910,6 +1108,24 @@
             "tds_status": {
                 "name": "Estado TDS"
             },
+            "water_safety_status": {
+                "name": "Estado de seguridad del agua"
+            },
+            "water_safety_reason": {
+                "name": "Motivo de seguridad del agua"
+            },
+            "water_safety_orp_warning_mv": {
+                "name": "Umbral de advertencia ORP"
+            },
+            "water_safety_orp_critical_mv": {
+                "name": "Umbral crítico ORP"
+            },
+            "water_safety_ph_min": {
+                "name": "Umbral inferior de advertencia de pH"
+            },
+            "water_safety_ph_max": {
+                "name": "Umbral superior de advertencia de pH"
+            },
             "alkalinity_estimated_ppm": {
                 "name": "Alcalinidad estimada"
             },
@@ -936,12 +1152,6 @@
             },
             "alkalinity_water_change_percent": {
                 "name": "Cambio de agua antes de corregir alcalinidad (%)"
-            },
-            "alkalinity_plus_g": {
-                "name": "Subir alcalinidad (g)"
-            },
-            "alkalinity_minus_g": {
-                "name": "Bajar alcalinidad (g)"
             },
             "tds_water_change_liters": {
                 "name": "Cambio de agua recomendado (L)"
@@ -1011,18 +1221,6 @@
             },
             "power_saving_aux_threshold": {
                 "name": "Umbral ahorro calefacción auxiliar"
-            },
-            "pv_band_low": {
-                "name": "Banda PV baja"
-            },
-            "pv_band_mid_on": {
-                "name": "Banda PV media (encendido)"
-            },
-            "pv_band_mid_off": {
-                "name": "Banda PV media (apagado)"
-            },
-            "pv_band_high": {
-                "name": "Banda PV alta"
             },
             "main_power": {
                 "name": "Potencia principal"

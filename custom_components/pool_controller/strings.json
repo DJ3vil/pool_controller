@@ -7,12 +7,18 @@
         "data": {
           "name": "Pool name",
           "water_volume": "Water volume (liters)",
-          "demo_mode": "Demo mode"
+          "demo_mode": "Demo mode",
+          "sanitizer_mode": "Sanitization mode",
+          "sanitizer_product": "Chlorine product",
+          "target_salt_g_l": "Target salt (g/L)"
         },
         "data_description": {
           "name": "Display name for this pool installation",
           "water_volume": "Water volume in liters (used for dosing and heating time calculations)",
-          "demo_mode": "Demo mode: does not switch real devices (for testing only)"
+          "demo_mode": "Demo mode: does not switch real devices (for testing only)",
+          "sanitizer_mode": "Chlorine = classic dosing, Saltwater = salt chlorinator, Mixed = both",
+          "sanitizer_product": "The main chlorine product used for dosing. Saltwater automatically uses a salt cell.",
+          "target_salt_g_l": "Target salt level for saltwater or mixed operation"
         }
       },
       "switches": {
@@ -40,7 +46,7 @@
       },
       "water_quality": {
         "title": "Water quality",
-        "description": "Select temperature and (optional) water chemistry sensors.",
+        "description": "Configure water-safety thresholds and, when direct BlueRiiot reading is disabled, the conventional sensors.",
         "submit": "Continue",
         "data": {
           "temp_water_sensor": "Water temperature",
@@ -48,13 +54,99 @@
           "chlorine_sensor": "Chlorine (redox) sensor",
           "salt_sensor": "Salt sensor",
           "tds_sensor": "Conductivity sensor"
+          ,"water_safety_orp_warning_mv": "ORP warning threshold (mV)",
+          "water_safety_orp_critical_mv": "ORP critical threshold (mV)",
+          "water_safety_ph_min": "pH lower warning threshold",
+          "water_safety_ph_max": "pH upper warning threshold"
         },
         "data_description": {
           "temp_water_sensor": "Pool water temperature sensor (required)",
           "ph_sensor": "pH value sensor (Blueriiot or similar)",
           "chlorine_sensor": "Redox sensor for chlorine measurement in mV",
           "salt_sensor": "Salt content sensor for saltwater pools",
-          "tds_sensor": "Conductivity sensor (TDS) for water quality"
+          "tds_sensor": "Conductivity sensor (TDS) for water quality",
+          "water_safety_orp_warning_mv": "Below this value the water safety status becomes a warning (default: 550 mV)",
+          "water_safety_orp_critical_mv": "Below this value the water safety status becomes critical (default: 400 mV); it must be below the warning threshold",
+          "water_safety_ph_min": "Below this value the water safety status becomes a warning (default: 7.0)",
+          "water_safety_ph_max": "Above this value the water safety status becomes a warning; with low ORP it is critical (default: 7.8)"
+        }
+      },
+      "blueriiot": {
+        "title": "BlueRiiot Bluetooth reader",
+        "description": "Optional: reads BlueRiiot water values directly through Home Assistant Bluetooth adapters and proxies. Leave this off to keep the classic sensor-based fallback.",
+        "submit": "Continue",
+        "data": {
+          "enable_blueriiot": "Read BlueRiiot directly",
+          "blueriiot_mac": "BlueRiiot Bluetooth address",
+          "blueriiot_interval_minutes": "Daytime reading interval",
+          "blueriiot_night_interval_minutes": "Nighttime reading interval",
+          "blueriiot_night_start": "Nighttime starts",
+          "blueriiot_night_end": "Nighttime ends"
+        },
+        "data_description": {
+          "enable_blueriiot": "When enabled, fresh BlueRiiot reads take priority. If no fresh read is available, the configured classic sensor entities remain the fallback.",
+          "blueriiot_mac": "Nearby Bluetooth devices are listed automatically. Select the BlueRiiot device, or enter its MAC address manually if it is not listed.",
+          "blueriiot_interval_minutes": "Minimum time between direct Bluetooth readings during the day.",
+          "blueriiot_night_interval_minutes": "Minimum time between direct Bluetooth readings at night.",
+          "blueriiot_night_start": "Local time at which the nighttime interval starts.",
+          "blueriiot_night_end": "Local time at which the daytime interval starts again."
+        }
+      },
+      "sensor_health": {
+        "title": "Sensor reachability monitoring",
+        "description": "Optional: monitors whether the measurement infrastructure is reachable. Leave disabled if your setup does not need it.",
+        "submit": "Continue",
+        "data": {
+          "enable_sensor_health": "Enable sensor reachability monitoring",
+          "sensor_health_esp32_device": "ESP32 device",
+          "sensor_health_water_sensor": "Water sensor reachability"
+        },
+        "data_description": {
+          "enable_sensor_health": "Shows a problem when the configured ESP32 or water sensor is unreachable.",
+          "sensor_health_esp32_device": "Optional device that provides the pool measurement values. The integration treats it as reachable when at least one entity of this device is available.",
+          "sensor_health_water_sensor": "Optional binary sensor that is on when the water sensor (for example BlueRiiot) is reachable."
+        }
+      },
+      "measurement": {
+        "title": "Measurement infrastructure",
+        "description": "Configure direct BlueRiiot readings and optional reachability monitoring together.",
+        "submit": "Continue",
+        "data": {
+          "enable_blueriiot": "Read BlueRiiot directly",
+          "blueriiot_mac": "BlueRiiot Bluetooth address",
+          "blueriiot_interval_minutes": "Daytime reading interval",
+          "blueriiot_night_interval_minutes": "Nighttime reading interval",
+          "blueriiot_night_start": "Nighttime starts",
+          "blueriiot_night_end": "Nighttime ends",
+          "enable_sensor_health": "Enable reachability monitoring",
+          "sensor_health_esp32_device": "ESP32 device",
+          "sensor_health_water_sensor": "Water sensor reachability"
+        },
+        "data_description": {
+          "enable_blueriiot": "Direct BlueRiiot readings take priority over conventional sensor entities.",
+          "blueriiot_mac": "Nearby Bluetooth devices are listed automatically. Select the BlueRiiot device or enter its MAC address manually.",
+          "blueriiot_interval_minutes": "Minimum time between direct Bluetooth readings during the day.",
+          "blueriiot_night_interval_minutes": "Minimum time between direct Bluetooth readings at night.",
+          "blueriiot_night_start": "Local time at which the nighttime interval starts.",
+          "blueriiot_night_end": "Local time at which the daytime interval starts again.",
+          "enable_sensor_health": "Shows a problem when the measurement infrastructure is unreachable.",
+          "sensor_health_esp32_device": "Optional device that provides the pool measurement values.",
+          "sensor_health_water_sensor": "Optional binary sensor that is on when the water sensor is reachable."
+        }
+      },
+      "notifications": {
+        "title": "Maintenance notifications",
+        "description": "Optionally notify a Home Assistant mobile app when a sensor becomes unreachable or water quality needs attention. Alerts are sent once when a condition begins, including pH and chlorine/ORP warnings.",
+        "submit": "Continue",
+        "data": {
+          "notify_service": "Phone",
+          "notify_sensor_health": "Notify when a sensor is unreachable",
+          "notify_water_quality": "Notify about water quality"
+        },
+        "data_description": {
+          "notify_service": "Select a mobile app notification service. Leave disabled to send no notifications.",
+          "notify_sensor_health": "Sends an alert when the configured ESP32 or water sensor is unreachable.",
+          "notify_water_quality": "Sends an alert for critical TDS, out-of-range alkalinity, low pH, or low chlorine/ORP values."
         }
       },
       "sanitizer": {
@@ -80,8 +172,8 @@
         }
       },
       "chemistry": {
-        "title": "Chemistry estimation",
-        "description": "Simple tuning for robust chemistry recommendations. Defaults are suitable for most pools.",
+        "title": "Alkalinity calculation",
+        "description": "Fine-tune robust alkalinity and water-change recommendations. Defaults are suitable for most pools.",
         "submit": "Continue",
         "data": {
           "chem_target_tds_ppm": "Target TDS (ppm)",
@@ -320,7 +412,8 @@
       }
     },
     "error": {
-      "invalid_entity": "Please select an external switch — not one created by this integration."
+      "invalid_entity": "Please select an external switch — not one created by this integration.",
+      "invalid_mac": "Enter a valid Bluetooth MAC address, for example 00:A0:50:C7:46:C9."
     }
   },
   "options": {
@@ -332,6 +425,9 @@
           "basic": "Basic settings",
           "switches": "Switches & power",
           "water_quality": "Water quality",
+          "blueriiot": "BlueRiiot Bluetooth reader",
+          "sensor_health": "Sensor reachability",
+          "notifications": "Maintenance notifications",
           "sanitizer": "Sanitizer",
           "chemistry": "Chemistry estimation",
           "climate": "Temperature control",
@@ -400,6 +496,57 @@
           "chlorine_sensor": "Redox sensor for chlorine measurement in mV",
           "salt_sensor": "Salt content sensor for saltwater pools",
           "tds_sensor": "Conductivity sensor (TDS) for water quality"
+        }
+      },
+      "blueriiot": {
+        "title": "BlueRiiot Bluetooth reader",
+        "description": "Optional: reads BlueRiiot water values directly through Home Assistant Bluetooth adapters and proxies.",
+        "submit": "Submit",
+        "data": {
+          "enable_blueriiot": "Read BlueRiiot directly",
+          "blueriiot_mac": "BlueRiiot Bluetooth address",
+          "blueriiot_interval_minutes": "Daytime reading interval",
+          "blueriiot_night_interval_minutes": "Nighttime reading interval",
+          "blueriiot_night_start": "Nighttime starts",
+          "blueriiot_night_end": "Nighttime ends"
+        },
+        "data_description": {
+          "enable_blueriiot": "When enabled, BlueRiiot values take priority over the selected water-quality sensor entities.",
+          "blueriiot_mac": "Nearby Bluetooth devices are listed automatically. Select the BlueRiiot device, or enter its MAC address manually if it is not listed.",
+          "blueriiot_interval_minutes": "Minimum time between direct Bluetooth readings during the day.",
+          "blueriiot_night_interval_minutes": "Minimum time between direct Bluetooth readings at night.",
+          "blueriiot_night_start": "Local time at which the nighttime interval starts.",
+          "blueriiot_night_end": "Local time at which the daytime interval starts again."
+        }
+      },
+      "sensor_health": {
+        "title": "Sensor reachability monitoring",
+        "description": "Optional: monitors whether the measurement infrastructure is reachable. Leave disabled if your setup does not need it.",
+        "submit": "Continue",
+        "data": {
+          "enable_sensor_health": "Enable sensor reachability monitoring",
+          "sensor_health_esp32_device": "ESP32 device",
+          "sensor_health_water_sensor": "Water sensor reachability"
+        },
+        "data_description": {
+          "enable_sensor_health": "Shows a problem when the configured ESP32 or water sensor is unreachable.",
+          "sensor_health_esp32_device": "Optional device that provides the pool measurement values. The integration treats it as reachable when at least one entity of this device is available.",
+          "sensor_health_water_sensor": "Optional binary sensor that is on when the water sensor (for example BlueRiiot) is reachable."
+        }
+      },
+      "notifications": {
+        "title": "Maintenance notifications",
+        "description": "Optionally notify a Home Assistant mobile app when a sensor becomes unreachable or water quality needs attention. Alerts are sent once when a condition begins.",
+        "submit": "Save",
+        "data": {
+          "notify_service": "Phone",
+          "notify_sensor_health": "Notify when a sensor is unreachable",
+          "notify_water_quality": "Notify about water quality"
+        },
+        "data_description": {
+          "notify_service": "Select a mobile app notification service. Leave disabled to send no notifications.",
+          "notify_sensor_health": "Sends an alert when the configured ESP32 or water sensor is unreachable.",
+          "notify_water_quality": "Sends an alert for critical TDS or out-of-range alkalinity values."
         }
       },
       "sanitizer": {
@@ -677,6 +824,10 @@
     },
     "binary_sensor": {
       "maintenance_active": { "name": "Maintenance mode" },
+      "sensor_health_problem": { "name": "Sensor reachability problem" },
+      "sensor_health_esp32_reachable": { "name": "ESP32 reachable" },
+      "sensor_health_water_sensor_reachable": { "name": "Water sensor reachable" },
+      "blueriiot_connected": { "name": "BlueRiiot reachable" },
       "away_active": { "name": "Away mode active" },
       "power_saving_active": { "name": "Power-saving mode active" },
       "power_saving_available": { "name": "Power-saving mode available" },
@@ -692,6 +843,7 @@
       "low_chlor": { "name": "Low chlorine" },
       "ph_alert": { "name": "pH out of range" },
       "tds_high": { "name": "TDS too high" },
+      "water_safety_risk": { "name": "Water spoilage risk" },
       "event_rain_blocked": { "name": "Event blocked due to rain" },
       "main_switch_on": { "name": "Main switch on" },
       "pump_switch_on": { "name": "Pump on" },
@@ -705,12 +857,18 @@
       "away_start": { "name": "Away on" },
       "away_stop": { "name": "Away off" },
       "power_saving_start": { "name": "Power saving on" },
-      "power_saving_stop": { "name": "Power saving off" }
+      "power_saving_stop": { "name": "Power saving off" },
+      "blueriiot_read": { "name": "Read BlueRiiot now" }
     },
     "sensor": {
       "status": { "name": "Status" },
       "run_reason": { "name": "Run reason" },
       "heat_reason": { "name": "Heating reason" },
+      "sensor_health_status": { "name": "Sensor reachability" },
+      "sensor_health_message": { "name": "Sensor reachability detail" },
+      "blueriiot_error": { "name": "BlueRiiot read error" },
+      "blueriiot_last_success": { "name": "BlueRiiot last successful read" },
+      "blueriiot_battery": { "name": "BlueRiiot battery" },
       "run_credit_source": { "name": "Run credit source" },
       "run_credit_minutes": { "name": "Run credit (min)" },
       "filter_credit_minutes": { "name": "Filter credit (min)" },
@@ -741,6 +899,12 @@
       "tds_val": { "name": "TDS" },
       "tds_effective": { "name": "TDS (excluding salt)" },
       "tds_status": { "name": "TDS status" },
+      "water_safety_status": { "name": "Water safety status" },
+      "water_safety_reason": { "name": "Water safety reason" },
+      "water_safety_orp_warning_mv": { "name": "ORP warning threshold" },
+      "water_safety_orp_critical_mv": { "name": "ORP critical threshold" },
+      "water_safety_ph_min": { "name": "pH lower warning threshold" },
+      "water_safety_ph_max": { "name": "pH upper warning threshold" },
       "alkalinity_estimated_ppm": { "name": "Estimated alkalinity" },
       "alkalinity_status": { "name": "Alkalinity status" },
       "alkalinity_action": { "name": "Alkalinity action" },
@@ -750,8 +914,6 @@
       "alkalinity_steps": { "name": "Alkalinity dose steps" },
       "alkalinity_wait_minutes": { "name": "Wait before re-test (min)" },
       "alkalinity_water_change_percent": { "name": "Water change before alkalinity correction (%)" },
-      "alkalinity_plus_g": { "name": "Increase alkalinity (g)" },
-      "alkalinity_minus_g": { "name": "Reduce alkalinity (g)" },
       "tds_water_change_liters": { "name": "Recommended water change (L)" },
       "tds_water_change_percent": { "name": "Recommended water change (%)" },
       "ph_minus_g": { "name": "Add pH- (g)" },
@@ -775,10 +937,6 @@
       "pv_smoothed": { "name": "PV (smoothed)" },
       "power_saving_pump_threshold": { "name": "Power-saving pump threshold" },
       "power_saving_aux_threshold": { "name": "Power-saving aux threshold" },
-      "pv_band_low": { "name": "PV band low" },
-      "pv_band_mid_on": { "name": "PV band mid (on)" },
-      "pv_band_mid_off": { "name": "PV band mid (off)" },
-      "pv_band_high": { "name": "PV band high" },
       "main_power": { "name": "Main power" },
       "aux_power": { "name": "Aux power" },
       "power": { "name": "Pool power (total)" },

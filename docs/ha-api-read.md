@@ -30,7 +30,9 @@ Example config file:
 ```json
 {
   "ha_url": "https://home.example.local/",
-  "ha_token": "YOUR_LONG_LIVED_ACCESS_TOKEN"
+  "ha_local_url": "http://192.168.1.196:8123",
+  "ha_token": "YOUR_LONG_LIVED_ACCESS_TOKEN",
+  "insecure": true
 }
 ```
 
@@ -44,6 +46,18 @@ For local developer safety:
 - `--timeout <seconds>`: HTTP timeout (default `20`)
 - `--compact`: one-line compact JSON output
 - `--insecure`: disable TLS certificate validation (use only in trusted local setups)
+- `--url <url>`: override the Home Assistant URL for one command
+- `--local`: use `ha_local_url` / `local_url` from config or `HA_LOCAL_URL`
+Global options can be placed before or after the subcommand, so both forms work:
+
+```bash
+python3 tools/ha_api_read.py --compact states --contains whirlpool
+python3 tools/ha_api_read.py states --compact --contains whirlpool
+python3 tools/ha_api_read.py --local pool --entity-id climate.whirlpool --compact
+python3 tools/ha_api_read.py --url http://192.168.1.196:8123 pool --entity-id climate.whirlpool --compact
+```
+
+When running inside the home network, prefer the direct Home Assistant URL (`ha_local_url`) over a reverse proxy. This avoids nginx WebSocket/TLS behavior during diagnostics.
 
 ## Commands
 
@@ -55,7 +69,18 @@ Read `/api/states` with optional filters.
 python3 tools/ha_api_read.py states
 python3 tools/ha_api_read.py --compact states --domain sensor --contains whirlpool
 python3 tools/ha_api_read.py --compact states --contains alkal --limit 50
+python3 tools/ha_api_read.py --compact states --domain sensor --name-contains temperatur --state-min 30 --state-max 35
+python3 tools/ha_api_read.py --compact states --entity-id sensor.hue_outdoor_motion_sensor_1_temperatur --entity-id weather.openweathermap
 ```
+
+Useful filters:
+
+- `--entity-id <entity>`: exact entity filter; can be repeated
+- `--domain <domain>`: domain filter, for example `sensor`
+- `--contains <text>`: substring match on `entity_id`
+- `--name-contains <text>`: substring match on `friendly_name`
+- `--state-min <number>` / `--state-max <number>`: numeric state range filter
+- `--limit <n>`: cap result count
 
 ### state
 
@@ -100,6 +125,34 @@ Call a Home Assistant service directly.
 python3 tools/ha_api_read.py call pool_controller set_options --target-entity climate.whirlpool --data enable_dynamic_target=true --data dynamic_target_weather_entity=weather.openweathermap
 ```
 
+### pool
+
+Reads a focused pool summary: the climate entity, dynamic-target diagnostics, weather entities, related pool entities, and local config-entry options when available.
+
+```bash
+python3 tools/ha_api_read.py pool --entity-id climate.whirlpool --compact
+python3 tools/ha_api_read.py pool --entity-id climate.whirlpool --focus dynamic-target --compact
+python3 tools/ha_api_read.py pool --device-id <ha_device_id> --compact
+python3 tools/ha_api_read.py pool --name whirlpool --full
+```
+
+Use this first for pool-controller live debugging instead of starting with broad `states` dumps.
+
+Use `--focus dynamic-target` when investigating target-temperature behavior. It returns only the pool climate state, dynamic target sensors, local outdoor sensor, configured weather entity, relevant weather attributes, and the effective dynamic-target options.
+
+### pool-config
+
+Reads `pool_controller` config data and options from the remote Home Assistant instance.
+
+The command first calls the read-only `pool_controller.get_options` service via Home Assistant WebSocket service response. If the remote instance has not been updated to a version that provides that service yet, it falls back to Home Assistant's `config_entries/get` WebSocket metadata.
+
+```bash
+python3 tools/ha_api_read.py pool-config --entity-id climate.whirlpool
+python3 tools/ha_api_read.py pool-config --device-id <ha_device_id>
+```
+
+Home Assistant's core WebSocket config-entry API does not expose `data`/`options`; the integration service is the source for real option values.
+
 ### apply-dynamic-target-defaults
 
 Convenience command to apply pool_controller dynamic-target defaults to one pool.
@@ -121,9 +174,9 @@ This quickly reveals whether changes came from restart windows, unavailable stat
 
 ## Notes on SSL
 
-If your HA endpoint uses a self-signed or incomplete certificate chain, requests can fail with `CERTIFICATE_VERIFY_FAILED`.
+If your HA endpoint uses a self-signed or incomplete certificate chain, the tool automatically retries the request with TLS verification disabled and prints one warning on stderr.
 
-In this case, you can use:
+You can also make this explicit:
 
 ```bash
 python3 tools/ha_api_read.py --insecure states --contains whirlpool

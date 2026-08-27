@@ -18,6 +18,9 @@ Die konkreten Entity-IDs hängen vom Namen deiner Instanz ab. Die Integration ve
 | `binary_sensor.<pool>_away_active` | Away-Modus aktiv |
 | `binary_sensor.<pool>_power_saving_active` | Stromsparmodus aktiv |
 | `binary_sensor.<pool>_power_saving_available` | Stromsparmodus verfügbar, also alle nötigen Sensoren und Signale vorhanden |
+| `binary_sensor.<pool>_sensor_health_problem` | Überwachung der Sensor-Erreichbarkeit meldet eine Störung |
+| `binary_sensor.<pool>_sensor_health_esp32_reachable` | Konfiguriertes ESP32-Gerät ist erreichbar |
+| `binary_sensor.<pool>_sensor_health_water_sensor_reachable` | Konfigurierter Erreichbarkeitssensor des Wassersensors ist an |
 | `binary_sensor.<pool>_should_main_on` | Stromversorgung sollte eingeschaltet sein |
 | `binary_sensor.<pool>_should_pump_on` | Umwälzpumpe sollte eingeschaltet sein |
 | `binary_sensor.<pool>_main_switch_on` | Physischer Hauptschalter ist aktuell EIN |
@@ -27,6 +30,7 @@ Die konkreten Entity-IDs hängen vom Namen deiner Instanz ab. Die Integration ve
 | `binary_sensor.<pool>_low_chlor` | Chlorniveau unter dem empfohlenen Bereich |
 | `binary_sensor.<pool>_ph_alert` | pH außerhalb des akzeptablen Bereichs |
 | `binary_sensor.<pool>_tds_high` | TDS zu hoch, Wasserwechsel empfohlen |
+| `binary_sensor.<pool>_water_safety_risk` | Kombiniertes pH-/ORP-Wasser-kippt-Risiko ist Warnung oder kritisch |
 | `binary_sensor.<pool>_event_rain_blocked` | Nächstes oder laufendes Kalenderevent wird wegen Regenwahrscheinlichkeit blockiert |
 
 ## Sensoren numerisch und Status
@@ -36,6 +40,8 @@ Die konkreten Entity-IDs hängen vom Namen deiner Instanz ab. Die Integration ve
 | `sensor.<pool>_status` | Enum | Aktueller Zustand: `normal`, `paused`, `frost_protection`, `maintenance`, `away`, `power_saving` |
 | `sensor.<pool>_run_reason` | Enum | Warum der Pool gerade läuft: `idle`, `bathing`, `chlorine`, `filter`, `preheat`, `pv`, `frost`, `pause`, `maintenance`, `power_saving` |
 | `sensor.<pool>_heat_reason` | Enum | Warum Heizen erlaubt oder aktiv ist: `off`, `disabled`, `bathing`, `preheat`, `pv`, `power_saving` |
+| `sensor.<pool>_sensor_health_status` | Enum | Optionaler Status der Sensor-Erreichbarkeit: `disabled`, `unknown`, `ok`, `problem` |
+| `sensor.<pool>_sensor_health_message` | Enum | Detail zur Sensor-Erreichbarkeit, z. B. `water_sensor_unreachable` |
 | `sensor.<pool>_run_credit_source` | Enum | Aktuelle Credit-Quelle, falls gerade eine Serie läuft |
 | `sensor.<pool>_run_credit_minutes` | Integer | Anrechenbare Minuten aus der aktuellen Serie |
 | `sensor.<pool>_filter_credit_minutes` | Integer | Effektive Filter-Credit-Minuten |
@@ -60,6 +66,8 @@ Die konkreten Entity-IDs hängen vom Namen deiner Instanz ab. Die Integration ve
 | `sensor.<pool>_heat_startup_offset_minutes` | Float | Gelernte Anlaufverzögerung der Heizung in Minuten |
 | `sensor.<pool>_sanitizer_mode` | Enum | Desinfektionsart: `chlorine`, `saltwater`, `mixed` |
 | `sensor.<pool>_tds_status` | Enum | Backend-abgeleitete Wasserqualitätsbewertung |
+| `sensor.<pool>_water_safety_status` | Enum | Kombinierter pH-/ORP-Sicherheitsstatus: `unknown`, `ok`, `warning`, `critical` |
+| `sensor.<pool>_water_safety_reason` | Enum | Grund für den Sicherheitsstatus: `missing_data`, `ok`, `very_low_orp`, `high_ph_low_orp`, `low_orp`, `ph_out_of_range` |
 | `sensor.<pool>_ph_val` | Float | Wasser-pH im Bereich 0 bis 14 |
 | `sensor.<pool>_chlor_val` | Float | Chlor beziehungsweise ORP in mV |
 | `sensor.<pool>_salt_val` | Float | Salzkonzentration in g/L, optional |
@@ -85,10 +93,6 @@ Die konkreten Entity-IDs hängen vom Namen deiner Instanz ab. Die Integration ve
 | `sensor.<pool>_frost_timer_mins` | Integer | Restminuten des aktiven Frostzyklus mit Attributen `active`, `duration_minutes` |
 | `sensor.<pool>_pv_power` | Float | PV-Leistung in Watt aus dem konfigurierten Sensor |
 | `sensor.<pool>_pv_smoothed` | Float | Geglättete PV-Leistung in Watt für die PV-Hysterese |
-| `sensor.<pool>_pv_band_low` | Float | PV-Leistung im unteren Bereich unterhalb oder gleich OFF-Schwelle |
-| `sensor.<pool>_pv_band_mid_on` | Float | PV-Leistung im mittleren Bereich, wenn PV freigegeben ist |
-| `sensor.<pool>_pv_band_mid_off` | Float | PV-Leistung im mittleren Bereich, wenn PV nicht freigegeben ist |
-| `sensor.<pool>_pv_band_high` | Float | PV-Leistung im hohen Bereich oberhalb oder gleich ON-Schwelle |
 | `sensor.<pool>_pv_on_threshold` | Integer | Konfigurierte PV-ON-Schwelle in Watt |
 | `sensor.<pool>_pv_off_threshold` | Integer | Konfigurierte PV-OFF-Schwelle in Watt |
 | `sensor.<pool>_main_power` | Float | Leistungsaufnahme der Hauptpumpe in Watt |
@@ -153,6 +157,8 @@ Die Integration stellt Schnellaktions-Buttons bereit, jeweils mit der Standardda
 - `sensor.pool_next_event` für das nächste Kalenderereignis
 - `sensor.pool_run_reason` für den aktuellen Laufgrund
 - `sensor.pool_heat_reason` für die Freigabe des Heizens
+- `sensor.pool_sensor_health_status` für den optionalen Erreichbarkeitsstatus von ESP32 und Wassersensor
+- `binary_sensor.pool_sensor_health_problem` als Störungssignal der Mess-Infrastruktur
 - `sensor.pool_run_credit_source` für die aktuelle Credit-Quelle
 - `sensor.pool_run_credit_minutes` für die aktuellen Credit-Minuten
 - `sensor.pool_filter_credit_minutes` für den effektiven Filter-Credit

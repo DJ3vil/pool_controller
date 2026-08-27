@@ -6,6 +6,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([
         PoolBinary(coordinator, "maintenance_active", "Wartung aktiv", BinarySensorDeviceClass.PROBLEM),
+        PoolBinary(coordinator, "sensor_health_problem", "Sensor-Erreichbarkeit gestört", BinarySensorDeviceClass.PROBLEM),
+        PoolBinary(coordinator, "sensor_health_esp32_reachable", "ESP32 erreichbar", BinarySensorDeviceClass.CONNECTIVITY),
+        PoolBinary(coordinator, "sensor_health_water_sensor_reachable", "Wassersensor erreichbar", BinarySensorDeviceClass.CONNECTIVITY),
+        PoolBinary(coordinator, "blueriiot_connected", "BlueRiiot erreichbar", BinarySensorDeviceClass.CONNECTIVITY),
         PoolBinary(coordinator, "away_active", "Abwesend", None),
         PoolBinary(coordinator, "power_saving_active", "Stromsparen aktiv", None),
         PoolBinary(coordinator, "power_saving_available", "Stromsparen verfügbar", None),
@@ -29,6 +33,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         PoolBinary(coordinator, "low_chlor", "Niedriger Chlorwert", None),
         PoolBinary(coordinator, "ph_alert", "pH außerhalb Bereich", None),
         PoolBinary(coordinator, "tds_high", "TDS zu hoch", BinarySensorDeviceClass.PROBLEM),
+        PoolBinary(coordinator, "water_safety_risk", "Wasser-kippt-Risiko", BinarySensorDeviceClass.PROBLEM),
         PoolBinary(coordinator, "event_rain_blocked", "Event wegen Regen blockiert", BinarySensorDeviceClass.PROBLEM),
     ])
 

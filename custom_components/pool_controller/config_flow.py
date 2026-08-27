@@ -1,9 +1,12 @@
 import logging
+import re
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components import bluetooth
 from homeassistant.core import callback
 from homeassistant.helpers import selector, entity_registry as er
 from .const import *
+from .blueriiot import SERVICE_UUID
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,13 +52,66 @@ def _validate_switch_targets(hass, data: dict | None) -> dict:
     return errors
 
 
+def _clear_water_quality_entities(payload: dict) -> None:
+    for key in (CONF_TEMP_WATER, CONF_PH_SENSOR, CONF_CHLORINE_SENSOR, CONF_SALT_SENSOR, CONF_TDS_SENSOR):
+        payload[key] = ""
+
+
+def _apply_sanitizer_options(target: dict, payload: dict) -> None:
+    """Store sanitizer selections from the shared basic settings form."""
+    target.update(payload)
+    mode = str(payload.get(CONF_SANITIZER_MODE, DEFAULT_SANITIZER_MODE)).strip().lower()
+    if mode not in ("chlorine", "saltwater", "mixed"):
+        mode = DEFAULT_SANITIZER_MODE
+    product = str(payload.get(CONF_SANITIZER_PRODUCT, DEFAULT_SANITIZER_PRODUCT)).strip().lower()
+    if product not in ("dichlor", "trichlor", "cal_hypo", "liquid_chlorine", "salt_cell", "other"):
+        product = DEFAULT_SANITIZER_PRODUCT
+    target[CONF_SANITIZER_MODE] = mode
+    target[CONF_ENABLE_SALTWATER] = mode in ("saltwater", "mixed")
+    target[CONF_SANITIZER_PRODUCT] = "salt_cell" if mode == "saltwater" else product
+
+
+def _normalize_blueriiot_options(data: dict) -> tuple[dict, dict]:
+    """Normalize a configured BlueRiiot MAC address and report invalid input."""
+    normalized = dict(data)
+    if not bool(normalized.get(CONF_ENABLE_BLUERIIOT, False)):
+        return normalized, {}
+
+    address = str(normalized.get(CONF_BLUERIIOT_MAC, "")).strip().upper()
+    if not re.fullmatch(r"[0-9A-F]{2}(?::[0-9A-F]{2}){5}", address):
+        return normalized, {CONF_BLUERIIOT_MAC: "invalid_mac"}
+
+    normalized[CONF_BLUERIIOT_MAC] = address
+    try:
+        salt_divisor = float(
+            normalized.get(
+                CONF_BLUERIIOT_SALT_DIVISOR, DEFAULT_BLUERIIOT_SALT_DIVISOR
+            )
+        )
+    except (TypeError, ValueError):
+        return normalized, {CONF_BLUERIIOT_SALT_DIVISOR: "invalid_salt_divisor"}
+    if salt_divisor <= 0:
+        return normalized, {CONF_BLUERIIOT_SALT_DIVISOR: "invalid_salt_divisor"}
+    normalized[CONF_BLUERIIOT_SALT_DIVISOR] = salt_divisor
+    return normalized, {}
+
+
 # Shared schema builders to avoid duplication between ConfigFlow and OptionsFlow
-def _init_schema(curr: dict | None = None):
+def _init_schema(curr: dict | None = None, sanitizer_options=None, product_options=None):
     c = curr or {}
     return vol.Schema({
         vol.Required(CONF_POOL_NAME, default=c.get(CONF_POOL_NAME, DEFAULT_NAME)): str,
         vol.Required(CONF_WATER_VOLUME, default=c.get(CONF_WATER_VOLUME, DEFAULT_VOL)): vol.Coerce(int),
         vol.Required(CONF_DEMO_MODE, default=c.get(CONF_DEMO_MODE, False)): bool,
+        vol.Optional(CONF_SANITIZER_MODE, default=c.get(CONF_SANITIZER_MODE, DEFAULT_SANITIZER_MODE)): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=(sanitizer_options or []), mode=selector.SelectSelectorMode.DROPDOWN)
+        ),
+        vol.Optional(CONF_SANITIZER_PRODUCT, default=c.get(CONF_SANITIZER_PRODUCT, DEFAULT_SANITIZER_PRODUCT)): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=(product_options or []), mode=selector.SelectSelectorMode.DROPDOWN)
+        ),
+        vol.Optional(CONF_TARGET_SALT_G_L, default=c.get(CONF_TARGET_SALT_G_L, DEFAULT_TARGET_SALT_G_L)): selector.NumberSelector(
+            selector.NumberSelectorConfig(min=0, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="g/L")
+        ),
     })
 
 def _switches_schema(curr: dict | None = None):
@@ -72,28 +128,173 @@ def _switches_schema(curr: dict | None = None):
         _opt_key(c, CONF_PUMP_SWITCH): selector.EntitySelector(selector.EntitySelectorConfig(domain="switch")),
         _opt_key(c, CONF_FILTER_SWITCH): selector.EntitySelector(selector.EntitySelectorConfig(domain="switch")),
         vol.Optional(CONF_ENABLE_AUX_HEATING, default=c.get(CONF_ENABLE_AUX_HEATING, False)): bool,
+        # Fork: _opt_key statt default=DEFAULT_* -> keine Geister-Defaults (upstream
+        # hat weiterhin "switch.whirlpool" o.ae. als DEFAULT_*).
         _opt_key(c, CONF_AUX_HEATING_SWITCH): selector.EntitySelector(selector.EntitySelectorConfig(domain="switch")),
         _opt_key(c, CONF_MAIN_POWER_SENSOR): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="power")),
         _opt_key(c, CONF_AUX_POWER_SENSOR): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="power")),
+        # Upstream v2.14: Heizleistungs-Felder fuer bessere PV-Berechnung.
+        vol.Optional(CONF_HEATER_BASE_POWER_W, default=c.get(CONF_HEATER_BASE_POWER_W, DEFAULT_HEATER_BASE_POWER_W)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=20000, step=50, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="W")),
+        vol.Optional(CONF_HEATER_AUX_POWER_W, default=c.get(CONF_HEATER_AUX_POWER_W, DEFAULT_HEATER_AUX_POWER_W)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=20000, step=50, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="W")),
     })
 
-def _water_quality_schema(curr: dict | None = None):
+def _water_safety_schema(curr: dict | None = None):
     c = curr or {}
-    water_default = c.get(CONF_TEMP_WATER)
-    water_marker = (
-        vol.Required(CONF_TEMP_WATER, default=water_default)
-        if water_default
-        else vol.Required(CONF_TEMP_WATER)
-    )
     return vol.Schema({
-        water_marker: selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="temperature")),
-        _opt_key(c, CONF_PH_SENSOR): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-        _opt_key(c, CONF_CHLORINE_SENSOR): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-        _opt_key(c, CONF_SALT_SENSOR): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-        _opt_key(c, CONF_TDS_SENSOR): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
+        vol.Optional(CONF_WATER_SAFETY_ORP_WARNING_MV, default=c.get(CONF_WATER_SAFETY_ORP_WARNING_MV, DEFAULT_WATER_SAFETY_ORP_WARNING_MV)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=350, max=900, step=10, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="mV")),
+        vol.Optional(CONF_WATER_SAFETY_ORP_CRITICAL_MV, default=c.get(CONF_WATER_SAFETY_ORP_CRITICAL_MV, DEFAULT_WATER_SAFETY_ORP_CRITICAL_MV)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=250, max=800, step=10, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="mV")),
+        vol.Optional(CONF_WATER_SAFETY_PH_MIN, default=c.get(CONF_WATER_SAFETY_PH_MIN, DEFAULT_WATER_SAFETY_PH_MIN)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=6.5, max=7.6, step=0.1, mode=selector.NumberSelectorMode.BOX)),
+        vol.Optional(CONF_WATER_SAFETY_PH_MAX, default=c.get(CONF_WATER_SAFETY_PH_MAX, DEFAULT_WATER_SAFETY_PH_MAX)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=7.4, max=8.5, step=0.1, mode=selector.NumberSelectorMode.BOX)),
     })
 
-def _sanitizer_schema(default_mode):
+
+def _water_quality_schema(curr: dict | None = None, include_sensor_mapping: bool = True):
+    c = curr or {}
+    schema = dict(_water_safety_schema(c).schema)
+    if include_sensor_mapping:
+        schema = {
+            vol.Optional(CONF_TEMP_WATER, default=c.get(CONF_TEMP_WATER) or None): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="temperature")),
+            vol.Optional(CONF_PH_SENSOR, default=c.get(CONF_PH_SENSOR) or None): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
+            vol.Optional(CONF_CHLORINE_SENSOR, default=c.get(CONF_CHLORINE_SENSOR) or None): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
+            vol.Optional(CONF_SALT_SENSOR, default=c.get(CONF_SALT_SENSOR) or None): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
+            vol.Optional(CONF_TDS_SENSOR, default=c.get(CONF_TDS_SENSOR) or None): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
+            **schema,
+        }
+    return vol.Schema(schema)
+
+def _blueriiot_mac_options(hass, configured_address: str) -> list[dict[str, str]]:
+    """Return nearby Bluetooth devices, with likely BlueRiiot devices first."""
+    candidates = []
+    seen_addresses = set()
+    target_service = SERVICE_UUID.lower()
+
+    for service_info in bluetooth.async_discovered_service_info(hass, connectable=True):
+        address = str(getattr(service_info, "address", "")).strip().upper()
+        if not re.fullmatch(r"[0-9A-F]{2}(?::[0-9A-F]{2}){5}", address):
+            continue
+        if address in seen_addresses:
+            continue
+        seen_addresses.add(address)
+
+        name = str(getattr(service_info, "name", "") or "Unknown Bluetooth device")
+        service_uuids = {
+            str(service_uuid).lower()
+            for service_uuid in (getattr(service_info, "service_uuids", None) or [])
+        }
+        manufacturer_data = (getattr(service_info, "manufacturer_data", None) or {}).get(305, b"")
+        likely_blueriiot = (
+            target_service in service_uuids
+            or "blueriiot" in name.lower()
+            or "blue connect" in name.lower()
+            or manufacturer_data.startswith(b"\x19\x01")
+        )
+        rssi = getattr(service_info, "rssi", None)
+        suffix = f" ({rssi} dBm)" if isinstance(rssi, int) else ""
+        candidates.append((not likely_blueriiot, name.lower(), {
+            "value": address,
+            "label": f"{'BlueRiiot: ' if likely_blueriiot else ''}{name} ({address}){suffix}",
+        }))
+
+    configured_address = str(configured_address or "").strip().upper()
+    if re.fullmatch(r"[0-9A-F]{2}(?::[0-9A-F]{2}){5}", configured_address):
+        if configured_address not in seen_addresses:
+            candidates.append((False, "configured", {
+                "value": configured_address,
+                "label": f"Configured BlueRiiot ({configured_address})",
+            }))
+
+    return [candidate for _, _, candidate in sorted(
+        candidates, key=lambda candidate: (candidate[0], candidate[1], candidate[2]["value"])
+    )]
+
+
+def _blueriiot_schema(hass, curr: dict | None = None):
+    c = curr or {}
+    configured_address = c.get(CONF_BLUERIIOT_MAC, "")
+    address_options = _blueriiot_mac_options(hass, configured_address)
+    default_address = configured_address
+    detected_blueriiots = [
+        option for option in address_options
+        if option["label"].startswith("BlueRiiot:")
+    ]
+    if not default_address and len(detected_blueriiots) == 1:
+        default_address = detected_blueriiots[0]["value"]
+    return vol.Schema({
+        vol.Optional(CONF_ENABLE_BLUERIIOT, default=c.get(CONF_ENABLE_BLUERIIOT, DEFAULT_ENABLE_BLUERIIOT)): bool,
+        vol.Optional(CONF_BLUERIIOT_MAC, default=default_address): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=address_options,
+                custom_value=True,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        vol.Optional(CONF_BLUERIIOT_SALT_DIVISOR, default=c.get(CONF_BLUERIIOT_SALT_DIVISOR, DEFAULT_BLUERIIOT_SALT_DIVISOR)): selector.NumberSelector(
+            selector.NumberSelectorConfig(min=1, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX)
+        ),
+        vol.Optional(CONF_BLUERIIOT_INTERVAL_MINUTES, default=c.get(CONF_BLUERIIOT_INTERVAL_MINUTES, DEFAULT_BLUERIIOT_INTERVAL_MINUTES)): selector.NumberSelector(
+            selector.NumberSelectorConfig(min=5, max=120, step=1, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="min")
+        ),
+        vol.Optional(CONF_BLUERIIOT_NIGHT_INTERVAL_MINUTES, default=c.get(CONF_BLUERIIOT_NIGHT_INTERVAL_MINUTES, DEFAULT_BLUERIIOT_NIGHT_INTERVAL_MINUTES)): selector.NumberSelector(
+            selector.NumberSelectorConfig(min=5, max=240, step=1, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="min")
+        ),
+        vol.Optional(CONF_BLUERIIOT_NIGHT_START, default=c.get(CONF_BLUERIIOT_NIGHT_START, DEFAULT_BLUERIIOT_NIGHT_START)): selector.TimeSelector(),
+        vol.Optional(CONF_BLUERIIOT_NIGHT_END, default=c.get(CONF_BLUERIIOT_NIGHT_END, DEFAULT_BLUERIIOT_NIGHT_END)): selector.TimeSelector(),
+    })
+
+def _sensor_health_schema(curr: dict | None = None, blueriiot_enabled: bool = False):
+    c = curr or {}
+    schema = {
+        vol.Optional(CONF_ENABLE_SENSOR_HEALTH, default=c.get(CONF_ENABLE_SENSOR_HEALTH, DEFAULT_ENABLE_SENSOR_HEALTH)): bool,
+    }
+    if not blueriiot_enabled:
+        schema.update({
+            vol.Optional(CONF_SENSOR_HEALTH_ESP32_DEVICE, default=c.get(CONF_SENSOR_HEALTH_ESP32_DEVICE, "")): selector.DeviceSelector(selector.DeviceSelectorConfig()),
+            vol.Optional(CONF_SENSOR_HEALTH_WATER_SENSOR, default=c.get(CONF_SENSOR_HEALTH_WATER_SENSOR, "")): selector.EntitySelector(selector.EntitySelectorConfig(domain="binary_sensor")),
+        })
+    return vol.Schema(schema)
+
+
+def _measurement_schema(hass, curr: dict | None = None):
+    c = curr or {}
+    return vol.Schema({
+        **_blueriiot_schema(hass, c).schema,
+        **_sensor_health_schema(c, False).schema,
+    })
+
+
+def _notification_service_options(hass, configured_service: str) -> list[dict[str, str]]:
+    """List installed Home Assistant mobile-app notification services."""
+    services = hass.services.async_services().get("notify", {})
+    service_names = sorted(name for name in services if name.startswith("mobile_app_"))
+    configured_service = str(configured_service or "").strip()
+    if configured_service and configured_service not in service_names:
+        service_names.append(configured_service)
+    return [{"value": "", "label": "Disabled"}] + [
+        {"value": service_name, "label": service_name.removeprefix("mobile_app_").replace("_", " ").title()}
+        for service_name in service_names
+    ]
+
+
+def _notifications_schema(hass, curr: dict | None = None):
+    c = curr or {}
+    return vol.Schema({
+        vol.Optional(CONF_NOTIFY_SERVICE, default=c.get(CONF_NOTIFY_SERVICE, "")): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=_notification_service_options(hass, c.get(CONF_NOTIFY_SERVICE, "")),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        vol.Optional(CONF_NOTIFY_SENSOR_HEALTH, default=c.get(CONF_NOTIFY_SENSOR_HEALTH, DEFAULT_NOTIFY_SENSOR_HEALTH)): bool,
+        vol.Optional(CONF_NOTIFY_WATER_QUALITY, default=c.get(CONF_NOTIFY_WATER_QUALITY, DEFAULT_NOTIFY_WATER_QUALITY)): bool,
+    })
+
+def _sanitizer_schema(default_mode, default_product=DEFAULT_SANITIZER_PRODUCT, product_options=None):
     # returns a single-field schema for sanitizer selection; caller should pass localized `options`
     def _inner(options=None):
         return vol.Schema({
@@ -102,7 +303,13 @@ def _sanitizer_schema(default_mode):
                     options=(options or []),
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
-            )
+            ),
+            vol.Optional(CONF_SANITIZER_PRODUCT, default=default_product): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=(product_options or []),
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
         })
     return _inner
 
@@ -153,10 +360,6 @@ def _climate_schema(curr: dict | None = None):
         vol.Optional(CONF_MIN_TEMP, default=c.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)): vol.Coerce(float),
         vol.Optional(CONF_MAX_TEMP, default=c.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)): vol.Coerce(float),
         vol.Optional(CONF_TARGET_TEMP_STEP, default=c.get(CONF_TARGET_TEMP_STEP, DEFAULT_TARGET_TEMP_STEP)): vol.Coerce(float),
-        vol.Optional(CONF_HEATER_BASE_POWER_W, default=c.get(CONF_HEATER_BASE_POWER_W, DEFAULT_HEATER_BASE_POWER_W)):
-            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=20000, step=50, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="W")),
-        vol.Optional(CONF_HEATER_AUX_POWER_W, default=c.get(CONF_HEATER_AUX_POWER_W, DEFAULT_HEATER_AUX_POWER_W)):
-            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=20000, step=50, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="W")),
         vol.Optional(CONF_COLD_TOLERANCE, default=c.get(CONF_COLD_TOLERANCE, DEFAULT_COLD_TOLERANCE)): vol.Coerce(float),
         vol.Optional(CONF_HOT_TOLERANCE, default=c.get(CONF_HOT_TOLERANCE, DEFAULT_HOT_TOLERANCE)): vol.Coerce(float),
     })
@@ -503,7 +706,7 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
-            self.data.update(user_input)
+            _apply_sanitizer_options(self.data, user_input)
             return await self.async_step_switches()
         # IMPORTANT: step_id must match the method suffix ("user") for the
         # initial config-flow step. Using step_id="init" here breaks first-time
@@ -512,7 +715,7 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             errors=errors,
-            data_schema=_init_schema({}),
+            data_schema=_init_schema({}, self._sanitizer_select_options(), _sanitizer_product_options((getattr(self.hass.config, "language", "en") or "en").split("-")[0])),
             last_step=False
         )
     async def async_step_switches(self, user_input=None):
@@ -527,7 +730,7 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not bool(normalized.get(CONF_ENABLE_AUX_HEATING, False)):
                     normalized[CONF_AUX_HEATING_SWITCH] = ""
                 self.data.update(normalized)
-                return await self.async_step_water_quality()
+                return await self.async_step_measurement()
 
         return self.async_show_form(
             step_id="switches",
@@ -539,12 +742,74 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_water_quality(self, user_input=None):
         if user_input is not None:
             self.data.update(user_input)
-            return await self.async_step_sanitizer()
+            return await self.async_step_notifications()
 
         return self.async_show_form(
             step_id="water_quality",
-            data_schema=_water_quality_schema({}),
+            data_schema=_water_quality_schema(self.data, not bool(self.data.get(CONF_ENABLE_BLUERIIOT, False))),
             last_step=False
+        )
+
+    async def async_step_measurement(self, user_input=None):
+        """Configure the direct reader and optional reachability monitoring together."""
+        if user_input is not None:
+            normalized, errors = _normalize_blueriiot_options(user_input)
+            if not errors:
+                if bool(normalized.get(CONF_ENABLE_BLUERIIOT, False)):
+                    _clear_water_quality_entities(normalized)
+                if bool(normalized.get(CONF_ENABLE_BLUERIIOT, False)) or not bool(normalized.get(CONF_ENABLE_SENSOR_HEALTH, False)):
+                    normalized[CONF_SENSOR_HEALTH_ESP32_DEVICE] = ""
+                    normalized[CONF_SENSOR_HEALTH_WATER_SENSOR] = ""
+                self.data.update(normalized)
+                return await self.async_step_water_quality()
+        curr = {**self.data}
+        return self.async_show_form(
+            step_id="measurement",
+            errors=errors if user_input is not None else {},
+            data_schema=_measurement_schema(self.hass, curr),
+            last_step=False,
+        )
+
+    async def async_step_blueriiot(self, user_input=None):
+        if user_input is not None:
+            normalized, errors = _normalize_blueriiot_options(user_input)
+            if not errors:
+                if bool(normalized.get(CONF_ENABLE_BLUERIIOT, False)):
+                    _clear_water_quality_entities(normalized)
+                self.data.update(normalized)
+                if bool(normalized.get(CONF_ENABLE_BLUERIIOT, False)):
+                    return await self.async_step_sensor_health()
+                return await self.async_step_water_quality()
+        return self.async_show_form(
+            step_id="blueriiot",
+            errors=errors if user_input is not None else {},
+            data_schema=_blueriiot_schema(self.hass, {}),
+            last_step=False,
+        )
+
+    async def async_step_sensor_health(self, user_input=None):
+        if user_input is not None:
+            normalized = dict(user_input)
+            if bool(self.data.get(CONF_ENABLE_BLUERIIOT, False)) or not bool(normalized.get(CONF_ENABLE_SENSOR_HEALTH, False)):
+                normalized[CONF_SENSOR_HEALTH_ESP32_DEVICE] = ""
+                normalized[CONF_SENSOR_HEALTH_WATER_SENSOR] = ""
+            self.data.update(normalized)
+            return await self.async_step_notifications()
+
+        return self.async_show_form(
+            step_id="sensor_health",
+            data_schema=_sensor_health_schema({}, bool(self.data.get(CONF_ENABLE_BLUERIIOT, False))),
+            last_step=False
+        )
+
+    async def async_step_notifications(self, user_input=None):
+        if user_input is not None:
+            self.data.update(user_input)
+            return await self.async_step_sanitizer()
+        return self.async_show_form(
+            step_id="notifications",
+            data_schema=_notifications_schema(self.hass, self.data),
+            last_step=False,
         )
 
     async def async_step_sanitizer(self, user_input=None):
@@ -556,20 +821,22 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.data[CONF_SANITIZER_MODE] = mode
             # Keep legacy flag in sync for backward compatibility.
             self.data[CONF_ENABLE_SALTWATER] = (mode in ("saltwater", "mixed"))
-            if mode in ("chlorine", "mixed"):
-                return await self.async_step_sanitizer_product()
-            # Salzwasser ohne klassisches Chlorprodukt
-            self.data.pop(CONF_SANITIZER_PRODUCT, None)
+            product = (user_input.get(CONF_SANITIZER_PRODUCT) or DEFAULT_SANITIZER_PRODUCT).strip().lower()
+            if product not in ("dichlor", "trichlor", "cal_hypo", "liquid_chlorine", "salt_cell", "other"):
+                product = DEFAULT_SANITIZER_PRODUCT
+            self.data[CONF_SANITIZER_PRODUCT] = "salt_cell" if mode == "saltwater" else product
             if mode in ("saltwater", "mixed"):
                 return await self.async_step_sanitizer_salt()
-            return await self.async_step_climate()
+            return await self.async_step_chemistry()
 
         curr = {**self.data}
         default_mode = (curr.get(CONF_SANITIZER_MODE) or ("saltwater" if curr.get(CONF_ENABLE_SALTWATER) else DEFAULT_SANITIZER_MODE))
+        default_product = curr.get(CONF_SANITIZER_PRODUCT, DEFAULT_SANITIZER_PRODUCT)
+        lang = (getattr(self.hass.config, "language", "en") or "en").split("-")[0]
         # Provide localized option labels to the selector
         return self.async_show_form(
             step_id="sanitizer",
-            data_schema=_sanitizer_schema(default_mode)(self._sanitizer_select_options()),
+            data_schema=_sanitizer_schema(default_mode, default_product, _sanitizer_product_options(lang))(self._sanitizer_select_options()),
             last_step=False,
         )
 
@@ -748,7 +1015,7 @@ class PoolControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="pv",
             errors=errors,
             data_schema=_pv_schema(curr),
-            last_step=True
+            last_step=False
         )
 
     async def async_step_costs(self, user_input=None):
@@ -801,9 +1068,9 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
             menu_options=[
                 "basic",
                 "switches",
+                "measurement",
                 "water_quality",
-                "sanitizer",
-                "sanitizer_product",
+                "notifications",
                 "chemistry",
                 "climate",
                 "dynamic_target",
@@ -825,15 +1092,16 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_basic(self, user_input=None):
         """Basic pool settings."""
         if user_input is not None:
-            self.options.update(user_input)
+            _apply_sanitizer_options(self.options, user_input)
             if self._menu_mode:
                 return self.async_create_entry(title="", data=self.options)
             return await self.async_step_switches()
 
         curr = {**self._config_entry.data, **self._config_entry.options}
+        lang = (getattr(self.hass.config, "language", "en") or "en").split("-")[0]
         return self.async_show_form(
             step_id="basic",
-            data_schema=_init_schema(curr),
+            data_schema=_init_schema(curr, _sanitizer_options(lang), _sanitizer_product_options(lang)),
             last_step=False
         )
 
@@ -851,7 +1119,7 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
                 self.options.update(normalized)
                 if self._menu_mode:
                     return self.async_create_entry(title="", data=self.options)
-                return await self.async_step_water_quality()
+                return await self.async_step_measurement()
 
         curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
         return self.async_show_form(
@@ -862,7 +1130,85 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     async def async_step_water_quality(self, user_input=None):
-        """Third step: water quality sensors."""
+        """Configure conventional sensors and water safety thresholds."""
+        curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
+        if user_input is not None:
+            self.options.update(user_input)
+            if self._menu_mode:
+                return self.async_create_entry(title="", data=self.options)
+            return await self.async_step_notifications()
+
+        return self.async_show_form(
+            step_id="water_quality",
+            data_schema=_water_quality_schema(curr, not bool(curr.get(CONF_ENABLE_BLUERIIOT, False))),
+            last_step=False
+        )
+
+    async def async_step_measurement(self, user_input=None):
+        """Configure BlueRiiot and reachability monitoring as one chapter."""
+        if user_input is not None:
+            normalized, errors = _normalize_blueriiot_options(user_input)
+            if not errors:
+                if bool(normalized.get(CONF_ENABLE_BLUERIIOT, False)):
+                    _clear_water_quality_entities(normalized)
+                if bool(normalized.get(CONF_ENABLE_BLUERIIOT, False)) or not bool(normalized.get(CONF_ENABLE_SENSOR_HEALTH, False)):
+                    normalized[CONF_SENSOR_HEALTH_ESP32_DEVICE] = ""
+                    normalized[CONF_SENSOR_HEALTH_WATER_SENSOR] = ""
+                self.options.update(normalized)
+                if self._menu_mode:
+                    return self.async_create_entry(title="", data=self.options)
+                return await self.async_step_water_quality()
+        curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
+        return self.async_show_form(
+            step_id="measurement",
+            errors=errors if user_input is not None else {},
+            data_schema=_measurement_schema(self.hass, curr),
+            last_step=False,
+        )
+
+    async def async_step_blueriiot(self, user_input=None):
+        """Optional native BlueRiiot reader using Home Assistant Bluetooth."""
+        if user_input is not None:
+            normalized, errors = _normalize_blueriiot_options(user_input)
+            if not errors:
+                if bool(normalized.get(CONF_ENABLE_BLUERIIOT, False)):
+                    _clear_water_quality_entities(normalized)
+                self.options.update(normalized)
+                if self._menu_mode:
+                    return self.async_create_entry(title="", data=self.options)
+                if bool(normalized.get(CONF_ENABLE_BLUERIIOT, False)):
+                    return await self.async_step_sensor_health()
+                return await self.async_step_water_quality()
+
+        curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
+        return self.async_show_form(
+            step_id="blueriiot",
+            errors=errors if user_input is not None else {},
+            data_schema=_blueriiot_schema(self.hass, curr),
+            last_step=False,
+        )
+
+    async def async_step_sensor_health(self, user_input=None):
+        """Optional monitoring for measurement infrastructure reachability."""
+        if user_input is not None:
+            normalized = dict(user_input)
+            curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
+            if bool(curr.get(CONF_ENABLE_BLUERIIOT, False)) or not bool(normalized.get(CONF_ENABLE_SENSOR_HEALTH, False)):
+                normalized[CONF_SENSOR_HEALTH_ESP32_DEVICE] = ""
+                normalized[CONF_SENSOR_HEALTH_WATER_SENSOR] = ""
+            self.options.update(normalized)
+            if self._menu_mode:
+                return self.async_create_entry(title="", data=self.options)
+            return await self.async_step_notifications()
+
+        curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
+        return self.async_show_form(
+            step_id="sensor_health",
+            data_schema=_sensor_health_schema(curr, bool(curr.get(CONF_ENABLE_BLUERIIOT, False))),
+            last_step=False
+        )
+
+    async def async_step_notifications(self, user_input=None):
         if user_input is not None:
             self.options.update(user_input)
             if self._menu_mode:
@@ -871,9 +1217,9 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
 
         curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
         return self.async_show_form(
-            step_id="water_quality",
-            data_schema=_water_quality_schema(curr),
-            last_step=False
+            step_id="notifications",
+            data_schema=_notifications_schema(self.hass, curr),
+            last_step=False,
         )
 
     async def async_step_sanitizer(self, user_input=None):
@@ -885,21 +1231,22 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
             self.options[CONF_SANITIZER_MODE] = mode
             # Keep legacy flag in sync for backward compatibility.
             self.options[CONF_ENABLE_SALTWATER] = (mode in ("saltwater", "mixed"))
-            if mode in ("chlorine", "mixed"):
-                return await self.async_step_sanitizer_product()
-            # Salzwasser ohne klassisches Chlorprodukt
-            self.options.pop(CONF_SANITIZER_PRODUCT, None)
+            product = (user_input.get(CONF_SANITIZER_PRODUCT) or DEFAULT_SANITIZER_PRODUCT).strip().lower()
+            if product not in ("dichlor", "trichlor", "cal_hypo", "liquid_chlorine", "salt_cell", "other"):
+                product = DEFAULT_SANITIZER_PRODUCT
+            self.options[CONF_SANITIZER_PRODUCT] = "salt_cell" if mode == "saltwater" else product
             if mode in ("saltwater", "mixed"):
                 return await self.async_step_sanitizer_salt()
             if self._menu_mode:
                 return self.async_create_entry(title="", data=self.options)
-            return await self.async_step_climate()
+            return await self.async_step_chemistry()
 
         curr = {**self._config_entry.data, **self._config_entry.options, **self.options}
         default_mode = (
             curr.get(CONF_SANITIZER_MODE)
             or ("saltwater" if curr.get(CONF_ENABLE_SALTWATER) else DEFAULT_SANITIZER_MODE)
         )
+        default_product = curr.get(CONF_SANITIZER_PRODUCT, DEFAULT_SANITIZER_PRODUCT)
 
         # Reuse centralized localized options helper
         lang = (getattr(self.hass.config, "language", "en") or "en").split("-")[0]
@@ -907,7 +1254,7 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="sanitizer",
-            data_schema=_sanitizer_schema(default_mode)(options),
+            data_schema=_sanitizer_schema(default_mode, default_product, _sanitizer_product_options(lang))(options),
             last_step=False,
         )
 
@@ -1130,7 +1477,7 @@ class PoolControllerOptionsFlowHandler(config_entries.OptionsFlow):
             step_id="pv",
             errors=errors,
             data_schema=_pv_schema(curr),
-            last_step=True
+            last_step=self._menu_mode
         )
 
     async def async_step_costs(self, user_input=None):
