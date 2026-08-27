@@ -92,6 +92,9 @@ class BlueRiiotReader:
                     "Pool Controller BlueRiiot",
                 )
                 await client.start_notify(NOTIFY_CHARACTERISTIC_UUID, _handle_notification)
+                # Fork: dem Blue Connect nach dem Connect Zeit zum Aufwachen geben,
+                # bevor das Mess-Kommando kommt (sonst notification_timeout).
+                await asyncio.sleep(2.0)
                 await client.write_gatt_char(
                     COMMAND_CHARACTERISTIC_UUID, b"\x01", response=True
                 )
